@@ -1,0 +1,3 @@
+# Affiliate Guide
+
+Coming soon.

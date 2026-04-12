@@ -1,0 +1,3 @@
+export default function VerifiedBadge() {
+  return <div className="p-4 text-sm text-muted">VerifiedBadge</div>;
+}

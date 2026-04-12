@@ -1,0 +1,4 @@
+.text-muted { color: var(--kenya-gray-400); }
+.bg-surface { background: var(--kenya-surface); }
+.bg-navy { background: var(--kenya-navy); }
+.border-soft { border-color: rgba(255,255,255,0.08); }

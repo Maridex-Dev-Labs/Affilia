@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+gunicorn
+pydantic
+python-dotenv
+celery
+redis
+httpx
+python-jose
+passlib[bcrypt]
+alembic

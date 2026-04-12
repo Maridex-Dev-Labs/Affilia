@@ -1,0 +1,19 @@
+{
+  "name": "Affilia",
+  "short_name": "Affilia",
+  "description": "Bridge merchants with marketers in Kenya",
+  "theme_color": "#000000",
+  "background_color": "#0A0E17",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/dashboard?utm_source=pwa",
+  "icons": [
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

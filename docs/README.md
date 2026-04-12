@@ -1,0 +1,5 @@
+# Affilia Documentation
+
+- API_DOCUMENTATION.md
+- DATABASE_SCHEMA.md
+- DEPLOYMENT_GUIDE.md

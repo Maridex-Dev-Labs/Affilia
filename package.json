@@ -1,0 +1,25 @@
+{
+  "name": "affilia",
+  "private": true,
+  "packageManager": "pnpm@9.7.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "seed:admin": "node scripts/create-admin-user.mjs",
+    "format": "prettier -w .",
+    "prepare": "husky",
+    "test": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.10",
+    "playwright": "^1.50.0",
+    "prettier": "^3.3.3",
+    "turbo": "^2.0.10",
+    "vitest": "^2.1.8"
+  }
+}

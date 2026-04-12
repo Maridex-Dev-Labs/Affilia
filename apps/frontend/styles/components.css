@@ -1,0 +1,10 @@
+.button-primary {
+  background: linear-gradient(90deg, #000000 0%, #BB0000 50%, #009A44 100%);
+  color: #FFFFFF;
+}
+
+.card-surface {
+  background: var(--kenya-surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+}
