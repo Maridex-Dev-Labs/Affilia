@@ -1,1 +1,3 @@
--- supabase seed placeholder
+-- Intentionally empty.
+-- Keep Supabase seed data disabled for AFFILIA.
+-- The platform is expected to run on real operational data only.

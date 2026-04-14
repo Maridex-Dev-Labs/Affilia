@@ -1,1 +1,2 @@
--- challenges seed placeholder
+-- Intentionally empty.
+-- Daily challenge definitions are currently generated in application logic.

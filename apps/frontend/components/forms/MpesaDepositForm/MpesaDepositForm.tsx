@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+
+import { merchantApi } from '@/lib/api/merchant';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { uploadDepositScreenshot } from '@/lib/supabase/storage';
 
@@ -35,21 +36,19 @@ export default function MpesaDepositForm({ onCreated }: Props) {
       if (file) {
         screenshot_url = await uploadDepositScreenshot(user.id, file);
       }
-      const { error: insertError } = await supabase.from('deposit_requests').insert({
-        merchant_id: user.id,
+      await merchantApi.deposit({
         amount_kes: Number(amount),
         mpesa_code: mpesa || null,
         screenshot_url,
-        status: 'pending',
       });
-      if (insertError) throw insertError;
       setAmount('');
       setMpesa('');
       setFile(null);
       setSuccess('Deposit request submitted.');
       onCreated?.();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to submit deposit.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit deposit.';
+      setError(message);
     } finally {
       setLoading(false);
     }

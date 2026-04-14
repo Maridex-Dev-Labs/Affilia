@@ -1,39 +1,63 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/admin-client';
-import { logAdminAction } from '@/lib/security/audit-logger';
+
+import { adminApi } from '@/lib/api/admin';
+import { useAdminAccess } from '@/lib/hooks/useAdminAccess';
+
+type DepositItem = {
+  id: string;
+  amount_kes: number;
+  mpesa_code?: string | null;
+  status: string;
+  merchant_id: string;
+  created_at: string;
+  profiles?: {
+    business_name?: string | null;
+    full_name?: string | null;
+  } | null;
+};
 
 export default function Page() {
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const { can, loading: accessLoading } = useAdminAccess();
+  const [deposits, setDeposits] = useState<DepositItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase
-      .from('deposit_requests')
-      .select('id, amount_kes, mpesa_code, status, merchant_id, created_at, profiles:merchant_id(business_name, full_name)')
-      .order('created_at', { ascending: false });
-    setDeposits(data || []);
+    setError(null);
+    try {
+      const data = await adminApi.pendingDeposits();
+      setDeposits(data.items || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load deposits.';
+      setError(message);
+    }
   };
 
   useEffect(() => {
-    load();
+    void (async () => {
+      await load();
+    })();
   }, []);
 
-  const approve = async (id: string, merchant_id: string, amount: number) => {
-    await supabase.from('deposit_requests').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', id);
-    const { data: escrow } = await supabase.from('merchant_escrow').select('*').eq('merchant_id', merchant_id).single();
-    if (escrow) {
-      await supabase.from('merchant_escrow').update({ balance_kes: escrow.balance_kes + amount }).eq('id', escrow.id);
-    } else {
-      await supabase.from('merchant_escrow').insert({ merchant_id, balance_kes: amount });
+  const approve = async (id: string) => {
+    setError(null);
+    try {
+      await adminApi.approveDeposit(id);
+      await load();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to approve deposit.';
+      setError(message);
     }
-    await logAdminAction('deposit_approve', 'deposit_request', id);
-    load();
   };
+
+  if (accessLoading) return <div className="text-muted">Loading access...</div>;
+  if (!can('deposit.approve')) return <div className="card-surface p-6 text-sm text-muted">You do not have permission to approve deposits.</div>;
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Deposit Requests</h1>
+      {error ? <div className="card-surface p-4 text-sm text-red-300">{error}</div> : null}
       <div className="card-surface p-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-muted">
@@ -54,10 +78,7 @@ export default function Page() {
                 <td className="py-3">{d.status}</td>
                 <td className="py-3">
                   {d.status !== 'approved' && (
-                    <button
-                      className="text-xs border border-white/20 rounded-full px-3 py-1"
-                      onClick={() => approve(d.id, d.merchant_id, d.amount_kes)}
-                    >
+                    <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => approve(d.id)}>
                       Approve
                     </button>
                   )}

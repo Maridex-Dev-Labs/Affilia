@@ -2,53 +2,73 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/hooks/useAuth';
+
+import { merchantApi } from '@/lib/api/merchant';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { levels } from '@/lib/config/levels';
 
+type StatCard = {
+  label: string;
+  value: string;
+  delta: string;
+};
+
+type MerchantTransaction = {
+  id: string;
+  product_id: string;
+  product_title?: string;
+  affiliate_id: string;
+  affiliate_name?: string;
+  order_value_kes: number;
+  commission_earned_kes: number;
+  status: string;
+};
+
 export default function Page() {
-  const { user } = useAuth();
   const { profile } = useProfile();
-  const [stats, setStats] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [stats, setStats] = useState<StatCard[]>([]);
+  const [transactions, setTransactions] = useState<MerchantTransaction[]>([]);
   const [pendingActions, setPendingActions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      if (!user) return;
-      const { data: escrow } = await supabase.from('merchant_escrow').select('*').eq('merchant_id', user.id).single();
-      const { data: products } = await supabase.from('products').select('id, stock_status').eq('merchant_id', user.id);
-      const { data: links } = await supabase.from('affiliate_links').select('id').in('product_id', (products || []).map((p) => p.id));
-      const { data: conversions } = await supabase
-        .from('conversions')
-        .select('id, order_value_kes, commission_earned_kes, status, affiliate_id, product_id, created_at, products(title), profiles:affiliate_id(full_name)')
-        .eq('merchant_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      const sales = (conversions || []).reduce((acc, c) => acc + (c.order_value_kes || 0), 0);
-      setStats([
-        { label: 'Escrow Balance', value: `KES ${escrow?.balance_kes || 0}`, delta: 'Updated' },
-        { label: 'Products', value: `${(products || []).length}`, delta: 'Active' },
-        { label: 'Affiliates', value: `${(links || []).length}`, delta: 'Active' },
-        { label: 'Sales', value: `KES ${sales}`, delta: 'Recent' },
-      ]);
-      setTransactions(conversions || []);
-      const pendingOrders = (conversions || []).filter((c) => c.status === 'pending').length;
-      const lowStock = (products || []).filter((p) => p.stock_status === 'low_stock' || p.stock_status === 'out').length;
-      const actions: string[] = [];
-      if (pendingOrders > 0) actions.push(`${pendingOrders} orders awaiting approval`);
-      if (lowStock > 0) actions.push(`${lowStock} products low/out of stock`);
-      if ((escrow?.balance_kes || 0) < 100000) actions.push('Escrow below KES 100K');
-      setPendingActions(actions);
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await merchantApi.dashboard();
+        setStats([
+          { label: 'Escrow Balance', value: `KES ${data.stats?.escrow_balance || 0}`, delta: 'Updated' },
+          { label: 'Products', value: `${data.stats?.products || 0}`, delta: 'Active' },
+          { label: 'Affiliates', value: `${data.stats?.affiliates || 0}`, delta: 'Active' },
+          { label: 'Sales', value: `KES ${data.stats?.sales_total || 0}`, delta: 'Lifetime' },
+        ]);
+        setTransactions(data.recent_transactions || []);
+        setPendingActions(data.pending_actions || []);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load merchant overview.';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
-  }, [user]);
+  }, []);
 
   const xp = profile?.xp_points || 0;
   const currentLevel = useMemo(() => levels.slice().reverse().find((l) => xp >= l.xp) || levels[0], [xp]);
   const nextLevel = useMemo(() => levels.find((l) => l.xp > xp) || currentLevel, [xp, currentLevel]);
   const progress = nextLevel.xp === currentLevel.xp ? 100 : Math.min(100, ((xp - currentLevel.xp) / (nextLevel.xp - currentLevel.xp)) * 100);
+
+  if (loading) {
+    return <div className="text-muted">Loading merchant overview...</div>;
+  }
+
+  if (error) {
+    return <div className="card-surface p-6 text-sm text-red-300">{error}</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -108,8 +128,8 @@ export default function Page() {
           <tbody>
             {transactions.map((row) => (
               <tr key={row.id} className="border-t border-soft">
-                <td className="py-3">{row.products?.title || row.product_id}</td>
-                <td className="py-3">{row.profiles?.full_name || row.affiliate_id}</td>
+                <td className="py-3">{row.product_title || row.product_id}</td>
+                <td className="py-3">{row.affiliate_name || row.affiliate_id}</td>
                 <td className="py-3">KES {row.order_value_kes}</td>
                 <td className="py-3">KES {row.commission_earned_kes}</td>
                 <td className="py-3">{row.status}</td>

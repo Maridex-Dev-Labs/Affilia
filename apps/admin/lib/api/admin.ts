@@ -3,10 +3,10 @@
 import { adminApiClient } from './client';
 
 export const adminApi = {
-  verificationQueue: () => adminApiClient.get('/api/admin/verification-queue'),
-  verifyMerchant: (merchantId: string) => adminApiClient.post(`/api/admin/verify-merchant/${merchantId}`),
-  pendingDeposits: () => adminApiClient.get('/api/admin/deposits/pending'),
-  approveDeposit: (depositId: string) => adminApiClient.post(`/api/admin/deposits/${depositId}/approve`),
-  sweepPreview: () => adminApiClient.get('/api/admin/sweep/preview'),
-  confirmSweep: () => adminApiClient.post('/api/admin/sweep/confirm'),
+  verificationQueue: async () => (await adminApiClient.get('/api/admin/verification-queue')).data,
+  verifyMerchant: async (merchantId: string) => (await adminApiClient.post(`/api/admin/verify-merchant/${merchantId}`)).data,
+  pendingDeposits: async () => (await adminApiClient.get('/api/admin/deposits/pending')).data,
+  approveDeposit: async (depositId: string) => (await adminApiClient.post(`/api/admin/deposits/${depositId}/approve`)).data,
+  sweepPreview: async () => (await adminApiClient.get('/api/admin/sweep/preview')).data,
+  confirmSweep: async () => (await adminApiClient.post('/api/admin/sweep/confirm')).data,
 };

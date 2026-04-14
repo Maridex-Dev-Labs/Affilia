@@ -1,3 +1,17 @@
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL || 'https://affilia-api.onrender.com';
+const appOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://affilia.vercel.app';
+const adminOrigin = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://sys-ctrl-ad-aff.vercel.app';
+const connectSrc = [
+  "'self'",
+  apiOrigin,
+  appOrigin,
+  adminOrigin,
+  'https://affilia-api.onrender.com',
+  'https://affilia-api-staging.onrender.com',
+  'https://*.supabase.co',
+  'wss://*.supabase.co',
+].join(' ');
+
 const withPWA = require('next-pwa')({ dest: 'public', disable: process.env.NODE_ENV === 'development' });
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -9,7 +23,7 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   {
     key: 'Content-Security-Policy',
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.affilia.co.ke; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.affilia.co.ke https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';"
+    value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.affilia.co.ke; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src ${connectSrc}; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';`
   },
 ];
 

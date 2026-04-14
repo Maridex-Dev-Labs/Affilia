@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         admin_user_id: adminUpsert.id,
         role_id: roleId,
       }));
-      const { error: rolesError } = await supabase.from('admin_user_roles').insert(assignments);
+      const { error: rolesError } = await supabase.from('admin_user_roles').upsert(assignments, { onConflict: 'admin_user_id,role_id' });
       if (rolesError) {
         return NextResponse.json({ error: rolesError.message }, { status: 500 });
       }

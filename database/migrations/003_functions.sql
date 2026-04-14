@@ -1,1 +1,3 @@
--- Functions placeholder
+-- Intentionally empty.
+-- Shared SQL functions now live in `database/full_schema.sql`
+-- and later additive migrations.

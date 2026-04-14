@@ -2,14 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowClockwise } from '@phosphor-icons/react';
+
+import { affiliateApi } from '@/lib/api/affiliate';
 import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
 
+type ProductDetail = {
+  id: string;
+  title: string;
+  description?: string | null;
+  price_kes: number;
+  commission_percent: number;
+  media?: Array<{ type: 'image' | 'video'; url: string }>;
+};
+
 export default function Page({ params }: { params: { productId: string } }) {
-  const { user } = useAuth();
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,16 +35,13 @@ export default function Page({ params }: { params: { productId: string } }) {
   const previewUrl = useMemo(() => getPrimaryMediaUrl(product), [product]);
 
   const generateLink = async () => {
-    if (!user) return;
-    const uniqueCode = `${user.id.slice(0, 4)}-${Math.floor(Math.random() * 9000 + 1000)}`;
-    const { error } = await supabase.from('affiliate_links').insert({
-      affiliate_id: user.id,
-      product_id: params.productId,
-      unique_code: uniqueCode,
-      link_type: 'smart_link',
-      destination_url: `${window.location.origin}/r/${params.productId}`,
-    });
-    setStatus(error ? error.message : `Smart link created: ${uniqueCode}`);
+    try {
+      const data = await affiliateApi.generateLink({ product_id: params.productId });
+      setStatus(`Smart link created: ${data.code}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to generate link.';
+      setStatus(message);
+    }
   };
 
   if (!product) return <div className="text-muted">Loading...</div>;

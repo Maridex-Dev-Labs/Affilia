@@ -1,1 +1,2 @@
--- levels seed placeholder
+-- Intentionally empty.
+-- Level thresholds are currently defined in application configuration, not seeded rows.

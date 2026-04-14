@@ -1,1 +1,3 @@
--- Triggers placeholder
+-- Intentionally empty.
+-- Trigger definitions now live in `database/full_schema.sql`
+-- and additive migrations where the owning tables were introduced.

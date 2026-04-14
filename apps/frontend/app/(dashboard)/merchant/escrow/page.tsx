@@ -2,32 +2,55 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/hooks/useAuth';
+
+import { merchantApi } from '@/lib/api/merchant';
 import MpesaDepositForm from '@/components/forms/MpesaDepositForm/MpesaDepositForm';
 import { formatCurrency } from '@/lib/utils/format';
 
+type EscrowState = {
+  balance_kes: number;
+};
+
+type DepositRow = {
+  id: string;
+  created_at: string;
+  amount_kes: number;
+  mpesa_code?: string | null;
+  status: string;
+};
+
 export default function Page() {
-  const { user } = useAuth();
-  const [escrow, setEscrow] = useState<any>(null);
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const [escrow, setEscrow] = useState<EscrowState | null>(null);
+  const [deposits, setDeposits] = useState<DepositRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    if (!user) return;
-    const { data: escrowData } = await supabase.from('merchant_escrow').select('*').eq('merchant_id', user.id).single();
-    const { data: depositData } = await supabase
-      .from('deposit_requests')
-      .select('*')
-      .eq('merchant_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setEscrow(escrowData || null);
-    setDeposits(depositData || []);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await merchantApi.escrow();
+      setEscrow({ balance_kes: data.balance || 0 });
+      setDeposits(data.deposits || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load escrow data.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     load();
-  }, [user]);
+  }, []);
+
+  if (loading) {
+    return <div className="text-muted">Loading escrow...</div>;
+  }
+
+  if (error) {
+    return <div className="card-surface p-6 text-sm text-red-300">{error}</div>;
+  }
 
   return (
     <div className="space-y-6">

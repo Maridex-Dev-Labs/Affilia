@@ -67,6 +67,35 @@ def dashboard(user=Depends(get_current_user)):
     if escrow_balance < 100000:
         pending_actions.append('Escrow below KES 100K')
 
+    affiliate_ids = [row.get('affiliate_id') for row in conversion_rows if row.get('affiliate_id')]
+    product_ids_for_names = [row.get('product_id') for row in conversion_rows if row.get('product_id')]
+    affiliate_map = {}
+    product_map = {}
+    if affiliate_ids:
+        affiliate_profiles = select(
+            'profiles',
+            params={'id': f"in.({','.join(affiliate_ids)})", 'select': 'id,full_name,business_name'},
+        )
+        affiliate_map = {row['id']: row for row in affiliate_profiles}
+    if product_ids_for_names:
+        recent_products = select(
+            'products',
+            params={'id': f"in.({','.join(product_ids_for_names)})", 'select': 'id,title'},
+        )
+        product_map = {row['id']: row for row in recent_products}
+
+    formatted_transactions = []
+    for row in conversion_rows:
+        affiliate = affiliate_map.get(row.get('affiliate_id'), {})
+        product = product_map.get(row.get('product_id'), {})
+        formatted_transactions.append(
+            {
+                **row,
+                'affiliate_name': affiliate.get('full_name') or affiliate.get('business_name') or row.get('affiliate_id'),
+                'product_title': product.get('title') or row.get('product_id'),
+            }
+        )
+
     return {
         'stats': {
             'escrow_balance': escrow_balance,
@@ -75,7 +104,7 @@ def dashboard(user=Depends(get_current_user)):
             'sales_total': sales_total,
         },
         'pending_actions': pending_actions,
-        'recent_transactions': conversion_rows,
+        'recent_transactions': formatted_transactions,
     }
 
 

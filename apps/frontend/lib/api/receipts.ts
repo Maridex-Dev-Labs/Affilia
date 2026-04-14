@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
 export const receiptsApi = {
-  list: () => apiClient.get('/api/receipts'),
-  get: (id: string) => apiClient.get(`/api/receipts/${id}`),
+  list: async () => (await apiClient.get('/api/receipts')).data,
+  get: async (id: string) => (await apiClient.get(`/api/receipts/${id}`)).data,
 };

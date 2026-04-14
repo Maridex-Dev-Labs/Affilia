@@ -1,8 +1,12 @@
 import { apiClient } from './client';
 
+type GenerateLinkPayload = {
+  product_id: string;
+};
+
 export const affiliateApi = {
-  dashboard: () => apiClient.get('/api/affiliates/dashboard'),
-  marketplace: () => apiClient.get('/api/affiliates/marketplace'),
-  generateLink: (payload: any) => apiClient.post('/api/affiliates/generate-link', payload),
-  leaderboard: () => apiClient.get('/api/affiliates/leaderboard'),
+  dashboard: async () => (await apiClient.get('/api/affiliates/dashboard')).data,
+  marketplace: async () => (await apiClient.get('/api/affiliates/marketplace')).data,
+  generateLink: async (payload: GenerateLinkPayload) => (await apiClient.post('/api/affiliates/generate-link', payload)).data,
+  leaderboard: async () => (await apiClient.get('/api/affiliates/leaderboard')).data,
 };

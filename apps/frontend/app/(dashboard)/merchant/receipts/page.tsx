@@ -2,22 +2,41 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/hooks/useAuth';
+
+import { receiptsApi } from '@/lib/api/receipts';
+
+type ReceiptRow = {
+  id: string;
+  receipt_number: string;
+  receipt_type: string;
+  amount_kes: number;
+  generated_at: string;
+};
 
 export default function Page() {
-  const { user } = useAuth();
-  const [receipts, setReceipts] = useState<any[]>([]);
+  const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('official_receipts')
-      .select('*')
-      .eq('recipient_id', user.id)
-      .order('generated_at', { ascending: false })
-      .then(({ data }) => setReceipts(data || []));
-  }, [user]);
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await receiptsApi.list();
+        setReceipts(data.items || []);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load receipts.';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) return <div className="text-muted">Loading receipts...</div>;
+  if (error) return <div className="card-surface p-6 text-sm text-red-300">{error}</div>;
 
   return (
     <div className="space-y-6">

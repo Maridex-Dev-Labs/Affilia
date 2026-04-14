@@ -1,1 +1,2 @@
--- categories seed placeholder
+-- Intentionally empty.
+-- Product and niche categories are managed through live admin and merchant data.

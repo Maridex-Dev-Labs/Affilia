@@ -2,27 +2,48 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/admin-client';
-import { logAdminAction } from '@/lib/security/audit-logger';
+
+import { adminApi } from '@/lib/api/admin';
 import { useAdminAccess } from '@/lib/hooks/useAdminAccess';
+
+type VerificationItem = {
+  id: string;
+  business_name?: string | null;
+  full_name?: string | null;
+  phone_number?: string | null;
+};
 
 export default function Page() {
   const { can, loading: accessLoading } = useAdminAccess();
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<VerificationItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('role', 'merchant').eq('business_verified', false);
-    setItems(data || []);
+    setError(null);
+    try {
+      const data = await adminApi.verificationQueue();
+      setItems(data.items || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load verification queue.';
+      setError(message);
+    }
   };
 
   useEffect(() => {
-    load();
+    void (async () => {
+      await load();
+    })();
   }, []);
 
   const approve = async (id: string) => {
-    await supabase.from('profiles').update({ business_verified: true }).eq('id', id);
-    await logAdminAction('merchant_verify', 'profile', id);
-    load();
+    setError(null);
+    try {
+      await adminApi.verifyMerchant(id);
+      await load();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to approve merchant.';
+      setError(message);
+    }
   };
 
 
@@ -32,6 +53,7 @@ export default function Page() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Merchant Verifications</h1>
+      {error ? <div className="card-surface p-4 text-sm text-red-300">{error}</div> : null}
       <div className="card-surface p-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-muted">

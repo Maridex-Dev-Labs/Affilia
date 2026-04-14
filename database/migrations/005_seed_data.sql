@@ -1,1 +1,3 @@
--- Seed data placeholder
+-- Intentionally empty.
+-- AFFILIA runs on real merchant, affiliate, admin, and tutor data.
+-- No demo application data is seeded in production-oriented migrations.

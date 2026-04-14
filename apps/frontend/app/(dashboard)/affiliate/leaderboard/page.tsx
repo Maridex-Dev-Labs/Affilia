@@ -1,11 +1,18 @@
 'use client';
 
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard';
-import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function Page() {
-  const { user } = useAuth();
-  const { rows, userRank, total } = useLeaderboard(user?.id);
+  const { rows, userRank, total, loading, error } = useLeaderboard();
+
+  if (loading) {
+    return <div className="text-muted">Loading leaderboard...</div>;
+  }
+
+  if (error) {
+    return <div className="card-surface p-6 text-sm text-red-300">{error}</div>;
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Weekly Leaderboard</h1>
@@ -24,7 +31,7 @@ export default function Page() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row: any) => (
+            {rows.map((row) => (
               <tr key={row.id} className="border-t border-soft">
                 <td className="py-3">{row.rank}</td>
                 <td className="py-3">{row.name}</td>

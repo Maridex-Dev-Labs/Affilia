@@ -2,72 +2,90 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+
+import { affiliateApi } from '@/lib/api/affiliate';
 import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { useLeaderboard } from '@/lib/hooks/useLeaderboard';
 import { levels } from '@/lib/config/levels';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
 
+type StatCard = {
+  label: string;
+  value: string;
+  delta: string;
+};
+
+type ChallengeCard = {
+  label: string;
+  progress: string;
+  percent: number;
+};
+
+type TrendingProduct = {
+  id: string;
+  title: string;
+  price_kes: number;
+  commission_percent: number;
+  images?: string[];
+  media?: Array<{ type: 'image' | 'video'; url: string }>;
+};
+
 export default function Page() {
-  const { user } = useAuth();
   const { profile } = useProfile();
-  const { userRank, total: leaderboardTotal } = useLeaderboard(user?.id);
-  const [stats, setStats] = useState<any[]>([]);
-  const [trending, setTrending] = useState<any[]>([]);
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const [stats, setStats] = useState<StatCard[]>([]);
+  const [trending, setTrending] = useState<TrendingProduct[]>([]);
+  const [challenges, setChallenges] = useState<ChallengeCard[]>([]);
+  const [leaderboardTotal, setLeaderboardTotal] = useState(0);
+  const [userRank, setUserRank] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      if (!user) return;
-      const { data: links } = await supabase.from('affiliate_links').select('id, clicks, created_at').eq('affiliate_id', user.id);
-      const { data: conversions } = await supabase.from('conversions').select('commission_earned_kes, created_at').eq('affiliate_id', user.id);
-      const totalEarnings = (conversions || []).reduce((acc, c) => acc + (c.commission_earned_kes || 0), 0);
-      const clicks = (links || []).reduce((acc, l) => acc + (l.clicks || 0), 0);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayEarnings = (conversions || []).filter((c) => new Date(c.created_at) >= today).reduce((acc, c) => acc + (c.commission_earned_kes || 0), 0);
-      const linksToday = (links || []).filter((l) => new Date(l.created_at) >= today).length;
-      const linkIds = (links || []).map((l) => l.id);
-      let clicksToday = 0;
-      if (linkIds.length > 0) {
-        const { data: clickEvents } = await supabase
-          .from('click_events')
-          .select('id, clicked_at, link_id')
-          .in('link_id', linkIds);
-        clicksToday = (clickEvents || []).filter((c) => new Date(c.clicked_at) >= today).length;
+      setLoading(true);
+      setError(null);
+      try {
+        const [dashboard, productResult] = await Promise.all([
+          affiliateApi.dashboard(),
+          supabase.from('products').select('*').eq('is_active', true).eq('moderation_status', 'approved').limit(4),
+        ]);
+        setUserRank(dashboard.rank ?? null);
+        setLeaderboardTotal(dashboard.leaderboard_total || 0);
+        setStats([
+          { label: "Today's Earnings", value: `KES ${dashboard.today || 0}`, delta: 'Today' },
+          { label: 'Total Earnings', value: `KES ${dashboard.total || 0}`, delta: 'Lifetime' },
+          { label: 'Active Links', value: `${dashboard.links || 0}`, delta: `${dashboard.clicks || 0} Clicks` },
+          { label: 'Weekly Rank', value: dashboard.rank ? `#${dashboard.rank}` : '#-', delta: `${dashboard.leaderboard_total || 0} Affiliates` },
+        ]);
+        setChallenges([
+          { label: 'Generate 5 links', progress: `${Math.min(dashboard.links || 0, 5)}/5`, percent: Math.min(100, ((dashboard.links || 0) / 5) * 100) },
+          { label: 'Make 1 sale today', progress: dashboard.today > 0 ? '1/1' : '0/1', percent: dashboard.today > 0 ? 100 : 0 },
+          { label: 'Get 10 clicks today', progress: `${Math.min(dashboard.clicks || 0, 10)}/10`, percent: Math.min(100, ((dashboard.clicks || 0) / 10) * 100) },
+        ]);
+        setTrending(productResult.data || []);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load affiliate overview.';
+        setError(message);
+      } finally {
+        setLoading(false);
       }
-      setStats([
-        { label: "Today's Earnings", value: `KES ${todayEarnings}`, delta: 'Today' },
-        { label: 'Total Earnings', value: `KES ${totalEarnings}`, delta: 'Lifetime' },
-        { label: 'Active Links', value: `${(links || []).length}`, delta: `${clicks} Clicks` },
-        { label: 'Weekly Rank', value: userRank ? `#${userRank}` : '#-', delta: `${leaderboardTotal || 0} Affiliates` },
-      ]);
-      const challengeList = [
-        { label: 'Generate 5 links', current: linksToday, target: 5 },
-        { label: 'Make 1 sale today', current: todayEarnings > 0 ? 1 : 0, target: 1 },
-        { label: 'Get 10 clicks today', current: clicksToday, target: 10 },
-      ].map((c) => ({
-        label: c.label,
-        progress: `${Math.min(c.current, c.target)}/${c.target}`,
-        percent: Math.min(100, (c.current / c.target) * 100),
-      }));
-      setChallenges(challengeList);
-      const { data: products } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .eq('moderation_status', 'approved')
-        .limit(4);
-      setTrending(products || []);
     };
     load();
-  }, [user, userRank, leaderboardTotal]);
+  }, []);
 
   const xp = profile?.xp_points || 0;
   const currentLevel = useMemo(() => levels.slice().reverse().find((l) => xp >= l.xp) || levels[0], [xp]);
   const nextLevel = useMemo(() => levels.find((l) => l.xp > xp) || currentLevel, [xp, currentLevel]);
   const progress = nextLevel.xp === currentLevel.xp ? 100 : Math.min(100, ((xp - currentLevel.xp) / (nextLevel.xp - currentLevel.xp)) * 100);
+
+  if (loading) {
+    return <div className="text-muted">Loading affiliate overview...</div>;
+  }
+
+  if (error) {
+    return <div className="card-surface p-6 text-sm text-red-300">{error}</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 6200",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start -p 6200",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
