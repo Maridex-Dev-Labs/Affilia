@@ -1,10 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/admin-client';
 
-export default function Page({ params }: { params: { merchantId: string } }) {
-  const [merchant, setMerchant] = useState<any>(null);
+type MerchantDetail = {
+  business_name?: string | null;
+  full_name?: string | null;
+  phone_number?: string | null;
+  business_verified?: boolean | null;
+  mpesa_till?: string | null;
+  documents?: Record<string, unknown> | null;
+};
+
+export default function Page() {
+  const params = useParams<{ merchantId: string }>();
+  const [merchant, setMerchant] = useState<MerchantDetail | null>(null);
 
   useEffect(() => {
     supabase.from('profiles').select('*').eq('id', params.merchantId).single().then(({ data }) => setMerchant(data));

@@ -1,7 +1,8 @@
-import os
 from celery import Celery
 
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+from app.config import settings
+
+redis_url = settings.REDIS_URL
 
 celery_app = Celery(
     'affilia',

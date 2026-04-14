@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ArrowClockwise, ClockCounterClockwise, FileImage, FileVideo } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/client';
 import Button, { SecondaryButton } from '@/components/ui/Button';
@@ -9,8 +9,9 @@ import { PRODUCT_MEDIA_GUIDELINES, getPrimaryMediaUrl, toMediaPayload, validateP
 import { uploadProductMedia } from '@/lib/supabase/storage';
 import { useAuth } from '@/lib/hooks/useAuth';
 
-export default function Page({ params }: { params: { id: string } }) {
+export default function Page() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const [product, setProduct] = useState<any>(null);
   const [newFiles, setNewFiles] = useState<File[]>([]);

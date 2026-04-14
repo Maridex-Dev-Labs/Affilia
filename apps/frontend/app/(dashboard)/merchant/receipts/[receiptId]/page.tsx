@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
 import { receiptsApi } from '@/lib/api/receipts';
 
@@ -12,7 +13,8 @@ type ReceiptDetail = {
   generated_at: string;
 };
 
-export default function Page({ params }: { params: { receiptId: string } }) {
+export default function Page() {
+  const params = useParams<{ receiptId: string }>();
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 

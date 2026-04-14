@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { ArrowClockwise } from '@phosphor-icons/react';
 
 import { affiliateApi } from '@/lib/api/affiliate';
@@ -17,7 +18,8 @@ type ProductDetail = {
   media?: Array<{ type: 'image' | 'video'; url: string }>;
 };
 
-export default function Page({ params }: { params: { productId: string } }) {
+export default function Page() {
+  const params = useParams<{ productId: string }>();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 

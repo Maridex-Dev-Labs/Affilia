@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name text,
   avatar_url text,
-  role text CHECK (role IN ('merchant', 'affiliate', 'admin')),
+  role text CHECK (role IN ('merchant', 'affiliate')),
   phone_number text UNIQUE,
   business_name text,
   business_verified boolean NOT NULL DEFAULT FALSE,
@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   xp_points integer NOT NULL DEFAULT 0 CHECK (xp_points >= 0),
   level integer NOT NULL DEFAULT 1 CHECK (level >= 1),
   onboarding_complete boolean NOT NULL DEFAULT FALSE,
+  must_change_password boolean NOT NULL DEFAULT FALSE,
+  last_password_changed_at timestamptz,
+  managed_by_admin uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  account_origin text NOT NULL DEFAULT 'self_service' CHECK (account_origin IN ('self_service', 'admin_provisioned')),
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );
@@ -58,9 +62,16 @@ CREATE TABLE IF NOT EXISTS public.products (
   commission_percent numeric(5,2) NOT NULL CHECK (commission_percent >= 0 AND commission_percent <= 100),
   commission_flat_kes numeric(10,2) GENERATED ALWAYS AS (price_kes * commission_percent / 100) STORED,
   images text[] NOT NULL DEFAULT '{}',
+  media jsonb NOT NULL DEFAULT '[]'::jsonb,
   category text,
   stock_status text NOT NULL DEFAULT 'in_stock' CHECK (stock_status IN ('in_stock', 'low_stock', 'out')),
   is_active boolean NOT NULL DEFAULT TRUE,
+  moderation_status text NOT NULL DEFAULT 'pending' CHECK (moderation_status IN ('pending', 'approved', 'rejected')),
+  moderation_notes text,
+  submitted_at timestamptz NOT NULL DEFAULT NOW(),
+  approved_at timestamptz,
+  approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  rejected_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );

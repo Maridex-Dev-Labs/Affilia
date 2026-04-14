@@ -1,9 +1,9 @@
+from app.config import settings
+
+
 def allowed_origins() -> list[str]:
-    return [
-        'https://affilia.co.ke',
-        'https://admin.affilia.co.ke',
-        'https://affilia.vercel.app',
-        'https://sys-ctrl-ad-aff.vercel.app',
-        'http://localhost:6100',
-        'http://localhost:6200',
-    ]
+    return list(settings.iter_allowed_origins())
+
+
+def trusted_hosts() -> list[str]:
+    return list(settings.iter_trusted_hosts())

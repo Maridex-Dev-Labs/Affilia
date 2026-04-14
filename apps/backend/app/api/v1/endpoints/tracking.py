@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+from app.config import settings
 from app.db.supabase import select, insert, update
 
 router = APIRouter()
@@ -35,5 +37,5 @@ def track_click(payload: ClickPayload):
 def resolve(code: str):
     links = select('affiliate_links', params={'unique_code': f'eq.{code}', 'select': '*', 'limit': 1})
     if not links:
-        return {'destination_url': 'https://affilia.vercel.app'}
+        return {'destination_url': settings.APP_URL}
     return {'destination_url': links[0].get('destination_url')}
