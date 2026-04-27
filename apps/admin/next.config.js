@@ -49,7 +49,7 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   turbopack: {
-    root: path.join(__dirname),
+    root: path.resolve(__dirname, '../..'),
   },
   images: {
     remotePatterns: [
