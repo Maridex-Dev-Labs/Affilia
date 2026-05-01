@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { WarningCircle, X } from '@phosphor-icons/react';
 
@@ -37,8 +38,9 @@ export default function AdminBackendNotice() {
         <div>
           <div className="font-bold text-white">Backend service degraded</div>
           <div className="mt-1">{outage.message}</div>
-          <div className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
-            last seen {new Date(outage.timestamp).toLocaleString('en-KE')}
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-white/45">
+            <span>last seen {new Date(outage.timestamp).toLocaleString('en-KE')}</span>
+            <Link href="/outages" className="text-[#ffb0b0] hover:text-white">Open outage queue</Link>
           </div>
         </div>
       </div>

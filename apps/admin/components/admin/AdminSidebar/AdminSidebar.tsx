@@ -12,6 +12,7 @@ import {
   GraduationCap,
   House,
   Megaphone,
+  Pulse,
   QrCode,
   ShieldWarning,
   SignOut,
@@ -30,6 +31,7 @@ const nav = [
   { label: 'User Mgmt', href: '/users', icon: Users, permission: 'user.manage' },
   { label: 'Moderation', href: '/moderation', icon: Sparkle, permission: 'product.review' },
   { label: 'Contracts', href: '/contracts', icon: Certificate, permission: 'legal.review' },
+  { label: 'Outages', href: '/outages', icon: Pulse, permission: 'system.outage.view' },
   { label: 'Academy', href: '/academy', icon: GraduationCap, permission: 'academy.manage' },
   { label: 'Audit Log', href: '/audit', icon: FileText, permission: 'audit.view' },
   { label: 'Analytics', href: '/analytics', icon: ChartBar, permission: 'dashboard.view' },
@@ -62,15 +64,14 @@ export default function AdminSidebar() {
           const active = pathname === item.href;
           return (
             <motion.div key={item.href} whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }}>
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`relative flex items-center gap-4 rounded-xl p-3 text-sm font-bold transition-colors ${active ? 'bg-black/50 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]' : 'text-[#8f98ab] hover:bg-white/5 hover:text-white'}`}
-            >
-              {active ? <span className="absolute inset-y-0 left-0 w-1 rounded-r-md bg-[#BB0000]" /> : null}
-              <Icon size={20} className={`ml-1 ${active ? 'text-[#BB0000]' : ''}`} weight={active ? 'fill' : 'regular'} />
-              <span>{item.label}</span>
-            </Link>
+              <Link
+                href={item.href}
+                className={`relative flex items-center gap-4 rounded-xl p-3 text-sm font-bold transition-colors ${active ? 'bg-black/50 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]' : 'text-[#8f98ab] hover:bg-white/5 hover:text-white'}`}
+              >
+                {active ? <span className="absolute inset-y-0 left-0 w-1 rounded-r-md bg-[#BB0000]" /> : null}
+                <Icon size={20} className={`ml-1 ${active ? 'text-[#BB0000]' : ''}`} weight={active ? 'fill' : 'regular'} />
+                <span>{item.label}</span>
+              </Link>
             </motion.div>
           );
         })}
