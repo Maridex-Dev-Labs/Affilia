@@ -5,6 +5,7 @@ from .endpoints import (
     affiliates,
     auth,
     chat,
+    contracts,
     forum,
     gamification,
     health,
@@ -29,6 +30,7 @@ api_router.include_router(products.router, prefix='/products', tags=['Products']
 api_router.include_router(orders.router, prefix='/orders', tags=['Orders'])
 api_router.include_router(transactions.router, prefix='/transactions', tags=['Transactions'])
 api_router.include_router(chat.router, prefix='/chat', tags=['Chat'])
+api_router.include_router(contracts.router, prefix='/contracts', tags=['Contracts'])
 api_router.include_router(forum.router, prefix='/forum', tags=['Forum'])
 api_router.include_router(gamification.router, prefix='/gamification', tags=['Gamification'])
 api_router.include_router(leaderboard.router, prefix='/leaderboard', tags=['Leaderboard'])

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 
 import { receiptsApi } from '@/lib/api/receipts';
+import { isBackendUnavailableError } from '@/lib/api/client';
+import { listReceiptsFallback } from '@/lib/api/fallbacks';
 
 type ReceiptRow = {
   id: string;
@@ -22,7 +24,12 @@ export default function Page() {
       setLoading(true);
       setError(null);
       try {
-        const data = await receiptsApi.list();
+        const data = await receiptsApi.list().catch(async (err) => {
+          if (isBackendUnavailableError(err)) {
+            return listReceiptsFallback();
+          }
+          throw err;
+        });
         setReceipts(data.items || []);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load receipts.';

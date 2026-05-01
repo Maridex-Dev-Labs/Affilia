@@ -13,6 +13,7 @@ import {
   Wallet,
 } from '@phosphor-icons/react';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
+import { affiliatePlans, merchantPlans, formatKes } from '@/lib/config/pricing';
 
 const KENYA_IMAGES = [
   'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&q=80&w=1920',
@@ -49,12 +50,6 @@ const testimonials = [
   { name: 'Peter O.', role: 'Affiliate', quote: 'Daily M-Pesa payouts changed how seriously I treat affiliate marketing. It feels like a real business.' },
 ];
 
-const plans = [
-  { name: 'Starter', price: 'FREE', description: 'Perfect for affiliates and small merchants getting started.', cta: 'Current Start', featured: false },
-  { name: 'Growth Tier', price: 'KES 1,500/mo', description: 'Priority alerts, advanced analytics, academy access, and premium support.', cta: 'Upgrade Now', featured: true },
-  { name: 'Merchant Pro', price: 'KES 7,500/mo', description: 'Designed for teams running multiple campaigns and managing larger escrow flows.', cta: 'Talk to Sales', featured: false },
-];
-
 function SectionCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
     <motion.div
@@ -85,7 +80,7 @@ export default function LandingPage() {
             <motion.div
               key={heroImageIndex}
               initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 0.55, scale: 1 }}
+              animate={{ opacity: 0.82, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 1.4 }}
               className="absolute inset-0"
@@ -93,8 +88,9 @@ export default function LandingPage() {
               <img src={KENYA_IMAGES[heroImageIndex]} alt="Kenyan city" className="h-full w-full object-cover" />
             </motion.div>
           </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0E17] via-[#0A0E17]/70 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0E17] via-[#0A0E17]/78 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0E17] via-[#0A0E17]/38 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0E17]/92 via-[#0A0E17]/42 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_28%,rgba(10,14,23,0.22)_75%,rgba(10,14,23,0.6)_100%)]" />
         </div>
 
         <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-2">
@@ -252,22 +248,54 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <div className="mb-14 text-center">
             <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#7e869a]">Pricing</div>
-            <h2 className="mt-3 text-3xl font-black italic text-white md:text-5xl">Simple Plans, Serious Utility</h2>
+            <h2 className="mt-3 text-3xl font-black italic text-white md:text-5xl">Affordable Plans For Affiliates And Merchants</h2>
+            <p className="mx-auto mt-4 max-w-3xl text-sm text-[#9ca5b9]">
+              Keep the entry barrier low. Affiliates should be able to start cheaply, and merchants should pay in line with actual business size.
+            </p>
           </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {plans.map((plan, index) => (
-              <SectionCard key={plan.name} delay={index * 0.08}>
-                {plan.featured ? <div className="kenya-flag-gradient absolute inset-x-0 top-0 h-1" /> : null}
-                <div className="mb-2 text-lg font-black italic text-white">{plan.name}</div>
-                <div className={`mb-5 text-3xl font-black ${plan.featured ? 'text-[#009A44]' : 'text-white'}`}>{plan.price}</div>
-                <p className="mb-6 text-sm text-[#9ca5b9]">{plan.description}</p>
-                {plan.featured ? (
-                  <PrimaryButton href="/signup" className="w-full justify-center text-sm">{plan.cta}</PrimaryButton>
-                ) : (
-                  <SecondaryButton href="/signup" className="w-full justify-center text-sm">{plan.cta}</SecondaryButton>
-                )}
-              </SectionCard>
-            ))}
+          <div className="grid gap-10 xl:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <div className="mb-6 text-[11px] font-bold uppercase tracking-[0.28em] text-[#009A44]">Affiliate Plans</div>
+              <div className="grid gap-6">
+                {affiliatePlans.map((plan, index) => (
+                  <SectionCard key={plan.name} delay={index * 0.08}>
+                    {plan.featured ? <div className="kenya-flag-gradient absolute inset-x-0 top-0 h-1" /> : null}
+                    <div className="mb-2 text-lg font-black italic text-white">{plan.name}</div>
+                    <div className="mb-5">
+                      <span className={`text-3xl font-black ${plan.featured ? 'text-[#009A44]' : 'text-white'}`}>{formatKes(plan.priceKes)}</span>
+                      <span className="ml-1 text-sm text-[#8f98ab]">{plan.cadenceLabel}</span>
+                    </div>
+                    <p className="mb-6 text-sm text-[#9ca5b9]">{plan.description}</p>
+                    {plan.featured ? (
+                      <PrimaryButton href="/signup" className="w-full justify-center text-sm">{plan.cta}</PrimaryButton>
+                    ) : (
+                      <SecondaryButton href="/signup" className="w-full justify-center text-sm">{plan.cta}</SecondaryButton>
+                    )}
+                  </SectionCard>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="mb-6 text-[11px] font-bold uppercase tracking-[0.28em] text-[#BB0000]">Merchant Plans</div>
+              <div className="grid gap-6 lg:grid-cols-3">
+                {merchantPlans.map((plan, index) => (
+                  <SectionCard key={plan.name} delay={index * 0.08}>
+                    {plan.featured ? <div className="kenya-flag-gradient absolute inset-x-0 top-0 h-1" /> : null}
+                    <div className="mb-2 text-lg font-black italic text-white">{plan.name}</div>
+                    <div className="mb-5">
+                      <span className={`text-3xl font-black ${plan.featured ? 'text-[#BB0000]' : 'text-white'}`}>{formatKes(plan.priceKes)}</span>
+                      <span className="ml-1 text-sm text-[#8f98ab]">{plan.cadenceLabel}</span>
+                    </div>
+                    <p className="mb-6 text-sm text-[#9ca5b9]">{plan.description}</p>
+                    {plan.featured ? (
+                      <PrimaryButton href="/signup" className="w-full justify-center text-sm">{plan.cta}</PrimaryButton>
+                    ) : (
+                      <SecondaryButton href="/signup" className="w-full justify-center text-sm">{plan.cta}</SecondaryButton>
+                    )}
+                  </SectionCard>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

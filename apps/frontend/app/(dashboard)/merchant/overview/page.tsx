@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
-import { merchantApi } from '@/lib/api/merchant';
+import { loadMerchantOverview } from '@/lib/dashboard/merchant-overview';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { levels } from '@/lib/config/levels';
 
@@ -25,6 +26,7 @@ type MerchantTransaction = {
 };
 
 export default function Page() {
+  const { user } = useAuth();
   const { profile } = useProfile();
   const [stats, setStats] = useState<StatCard[]>([]);
   const [transactions, setTransactions] = useState<MerchantTransaction[]>([]);
@@ -33,11 +35,16 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await merchantApi.dashboard();
+        const data = await loadMerchantOverview(user.id);
         setStats([
           { label: 'Escrow Balance', value: `KES ${data.stats?.escrow_balance || 0}`, delta: 'Updated' },
           { label: 'Products', value: `${data.stats?.products || 0}`, delta: 'Active' },
@@ -54,7 +61,7 @@ export default function Page() {
       }
     };
     load();
-  }, []);
+  }, [user]);
 
   const xp = profile?.xp_points || 0;
   const currentLevel = useMemo(() => levels.slice().reverse().find((l) => xp >= l.xp) || levels[0], [xp]);

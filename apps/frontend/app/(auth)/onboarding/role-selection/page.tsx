@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks/useAuth';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Page() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6">
       <div className="max-w-3xl w-full card-surface p-8 text-center">
+        <BrandLogo className="mb-6 justify-center" markClassName="h-14 w-14" textClassName="text-2xl font-black italic text-white" priority />
         <h1 className="text-3xl font-bold">Choose Your Role</h1>
         <p className="text-muted mt-2">Select how you will use Affilia.</p>
         <div className="grid gap-6 mt-8 md:grid-cols-2">

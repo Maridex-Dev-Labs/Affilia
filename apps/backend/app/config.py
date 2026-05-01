@@ -1,7 +1,13 @@
 import os
+from pathlib import Path
 from typing import Iterable
 
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(BACKEND_ROOT / ".env")
 
 
 def _csv_env(name: str, default: str = "") -> list[str]:
@@ -48,8 +54,8 @@ class Settings(BaseModel):
         missing = [key for key, value in required.items() if not value]
         if missing:
             raise RuntimeError(f"Missing required backend env vars: {', '.join(missing)}")
-        if self.is_production and not self.SECRET_KEY:
-            raise RuntimeError("SECRET_KEY must be set in production.")
+        if self.is_production and (not self.SECRET_KEY or self.SECRET_KEY.strip().lower() in {"change-me", "secret", "dev-secret"}):
+            raise RuntimeError("SECRET_KEY must be set to a non-default value in production.")
 
     def origin_allowed(self, origin: str | None) -> bool:
         return not origin or origin in self.CORS_ALLOW_ORIGINS

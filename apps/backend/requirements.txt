@@ -9,3 +9,4 @@ httpx
 python-jose
 passlib[bcrypt]
 alembic
+reportlab

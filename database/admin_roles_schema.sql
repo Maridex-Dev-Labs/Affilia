@@ -47,7 +47,8 @@ VALUES
   ('academy.manage', 'Manage academy', 'Manage tutors, academy content, and live sessions.'),
   ('audit.view', 'View audit log', 'Read platform audit activity.'),
   ('broadcast.manage', 'Manage broadcasts', 'Create and manage system broadcasts.'),
-  ('admin.manage', 'Manage admins', 'Provision and assign admin access roles.')
+  ('admin.manage', 'Manage admins', 'Provision and assign admin access roles.'),
+  ('legal.review', 'Review legal agreements', 'Review and approve merchant and affiliate legal agreement submissions.')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO public.admin_roles (code, name, description)
@@ -64,7 +65,7 @@ FROM public.admin_roles r
 JOIN public.admin_permissions p
   ON (
     (r.code = 'super_admin')
-    OR (r.code = 'operations_admin' AND p.code IN ('dashboard.view', 'merchant.verify', 'user.manage', 'product.review', 'audit.view'))
+    OR (r.code = 'operations_admin' AND p.code IN ('dashboard.view', 'merchant.verify', 'user.manage', 'product.review', 'audit.view', 'legal.review'))
     OR (r.code = 'finance_admin' AND p.code IN ('dashboard.view', 'deposit.approve', 'payout.manage', 'audit.view'))
     OR (r.code = 'community_admin' AND p.code IN ('dashboard.view', 'forum.moderate', 'academy.manage', 'broadcast.manage', 'audit.view'))
   )

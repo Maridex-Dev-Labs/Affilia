@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { recordClickViaSupabase, resolveLinkViaSupabase } from '@/lib/server/tracking-fallback';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   if (!url.pathname.startsWith('/r/')) return NextResponse.next();
 
@@ -41,6 +42,16 @@ export async function middleware(request: NextRequest) {
     } catch (err) {
       // ignore
     }
+  }
+
+  try {
+    const link = await resolveLinkViaSupabase(code);
+    if (link?.destination_url) {
+      await recordClickViaSupabase(link.id, request, url.searchParams);
+      return NextResponse.redirect(link.destination_url, { status: 302 });
+    }
+  } catch (_error) {
+    // ignore and use final fallback
   }
 
   return NextResponse.redirect(new URL('/', request.url), { status: 302 });

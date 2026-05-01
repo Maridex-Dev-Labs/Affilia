@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/admin-client';
 import { useAdminAuth } from '@/lib/hooks/useAdminAuth';
 import { PrimaryButton } from '@/components/shared/AdminButton';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Page() {
   const router = useRouter();
@@ -66,6 +67,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6">
       <div className="w-full max-w-md card-surface p-8">
+        <BrandLogo className="mb-6" markClassName="h-14 w-14" textClassName="text-2xl font-black italic text-white" priority />
         <h1 className="text-3xl font-bold">Change Temporary Password</h1>
         <p className="text-muted mt-2">This account was provisioned by the super admin. You must set a new password before entering the admin console.</p>
         <div className="mt-6 space-y-4">

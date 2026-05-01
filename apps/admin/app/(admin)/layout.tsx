@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
+import AdminBackendNotice from '@/components/admin/AdminBackendNotice';
 import { useAdminAuth } from '@/lib/hooks/useAdminAuth';
 import { supabase } from '@/lib/supabase/admin-client';
 import KenyanShieldLoader from '@/components/shared/KenyanShieldLoader/KenyanShieldLoader';
@@ -71,7 +72,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-screen flex-1 flex-col">
           <AdminHeader />
           <main className="flex-1 px-4 py-6 md:px-8">
-            <div className="mx-auto max-w-7xl">{children}</div>
+            <div className="mx-auto max-w-7xl">
+              <AdminBackendNotice />
+              {children}
+            </div>
           </main>
         </div>
       </div>

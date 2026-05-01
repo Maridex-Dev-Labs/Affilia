@@ -11,7 +11,7 @@ function isAllowedIp(ip?: string | null) {
   return whitelist.includes(ip);
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   if (!isAllowedIp(ip)) {
     return new NextResponse('Not Found', { status: 404 });

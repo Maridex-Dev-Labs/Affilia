@@ -1,0 +1,105 @@
+import { supabase } from '@/lib/supabase/client';
+
+function toNumber(value: unknown) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function requireUserId() {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error('Please sign in again.');
+  }
+  return user.id;
+}
+
+export async function loadEscrowFallback() {
+  const userId = await requireUserId();
+  const [escrowResult, depositsResult] = await Promise.all([
+    supabase.from('merchant_escrow').select('balance_kes').eq('merchant_id', userId).maybeSingle(),
+    supabase.from('deposit_requests').select('*').eq('merchant_id', userId).order('created_at', { ascending: false }).limit(10),
+  ]);
+  if (escrowResult.error || depositsResult.error) {
+    throw new Error(escrowResult.error?.message || depositsResult.error?.message || 'Failed to load escrow data.');
+  }
+  return {
+    balance: toNumber(escrowResult.data?.balance_kes),
+    deposits: depositsResult.data || [],
+  };
+}
+
+export async function submitDepositFallback(payload: { amount_kes: number; mpesa_code?: string | null; screenshot_url?: string | null }) {
+  const userId = await requireUserId();
+  const { error } = await supabase.from('deposit_requests').insert({
+    merchant_id: userId,
+    amount_kes: payload.amount_kes,
+    mpesa_code: payload.mpesa_code,
+    screenshot_url: payload.screenshot_url,
+    status: 'pending',
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return { status: 'submitted' };
+}
+
+export async function listReceiptsFallback() {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from('official_receipts')
+    .select('*')
+    .eq('recipient_id', userId)
+    .order('generated_at', { ascending: false });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return { items: data || [] };
+}
+
+export async function getReceiptFallback(receiptId: string) {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from('official_receipts')
+    .select('*')
+    .eq('id', receiptId)
+    .eq('recipient_id', userId)
+    .single();
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data;
+}
+
+export async function generateAffiliateLinkFallback(productId: string) {
+  const userId = await requireUserId();
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('is_active', true)
+    .eq('moderation_status', 'approved')
+    .single();
+
+  if (productError || !product) {
+    throw new Error('Product not available for promotion.');
+  }
+
+  const code = `${userId.slice(0, 4)}-${Math.random().toString(16).slice(2, 8)}`.toUpperCase();
+  const destinationUrl = `${window.location.origin}/r/${code}`;
+  const { error } = await supabase.from('affiliate_links').insert({
+    affiliate_id: userId,
+    product_id: productId,
+    unique_code: code,
+    link_type: 'smart_link',
+    destination_url: destinationUrl,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { code, destination_url: destinationUrl };
+}

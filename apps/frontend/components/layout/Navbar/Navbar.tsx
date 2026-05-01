@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { EnvelopeSimple, Lightning, MapPin, Phone } from '@phosphor-icons/react';
+import { EnvelopeSimple, MapPin, Phone } from '@phosphor-icons/react';
 import NavLinks from './NavLinks';
 import { PrimaryButton } from '@/components/ui/Button';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -24,10 +25,7 @@ export default function Navbar() {
       <div className="border-b border-white/8 bg-[#0A0E17]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4 md:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl kenya-flag-gradient shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-              <Lightning size={20} weight="fill" className="text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tight text-white">Affilia<span className="text-[#009A44]">.</span></span>
+            <BrandLogo priority markClassName="h-11 w-11" textClassName="text-xl font-black tracking-tight text-white" />
           </Link>
           {isPublic ? <NavLinks /> : <div className="hidden rounded-full border border-white/8 bg-black px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/60 lg:block">Live Platform</div>}
           <div className="flex items-center gap-3">

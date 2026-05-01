@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
 import { receiptsApi } from '@/lib/api/receipts';
+import { isBackendUnavailableError } from '@/lib/api/client';
+import { getReceiptFallback } from '@/lib/api/fallbacks';
 
 type ReceiptDetail = {
   receipt_number: string;
@@ -22,7 +24,12 @@ export default function Page() {
     const load = async () => {
       setError(null);
       try {
-        const data = await receiptsApi.get(params.receiptId);
+        const data = await receiptsApi.get(params.receiptId).catch(async (err) => {
+          if (isBackendUnavailableError(err)) {
+            return getReceiptFallback(params.receiptId);
+          }
+          throw err;
+        });
         setReceipt(data);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load receipt.';

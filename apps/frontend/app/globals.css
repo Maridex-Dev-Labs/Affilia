@@ -52,6 +52,7 @@ body {
 
 body {
   overflow-x: hidden;
+  background-attachment: fixed;
 }
 
 * {
@@ -121,12 +122,27 @@ select {
   border: 1px solid var(--line-soft);
   border-radius: 1.5rem;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
 }
 
 .card-hover:hover {
   transform: translateY(-4px);
   border-color: rgba(0, 154, 68, 0.6);
   box-shadow: 0 20px 40px rgba(0, 154, 68, 0.12);
+}
+
+.dashboard-shell {
+  position: relative;
+}
+
+.dashboard-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top left, rgba(0, 154, 68, 0.08), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(187, 0, 0, 0.08), transparent 20%);
 }
 
 .shadow-glow {

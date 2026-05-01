@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { isBackendUnavailableError } from '@/lib/api/client';
+import { submitDepositFallback } from '@/lib/api/fallbacks';
 import { merchantApi } from '@/lib/api/merchant';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { uploadDepositScreenshot } from '@/lib/supabase/storage';
@@ -36,11 +38,22 @@ export default function MpesaDepositForm({ onCreated }: Props) {
       if (file) {
         screenshot_url = await uploadDepositScreenshot(user.id, file);
       }
-      await merchantApi.deposit({
-        amount_kes: Number(amount),
-        mpesa_code: mpesa || null,
-        screenshot_url,
-      });
+      await merchantApi
+        .deposit({
+          amount_kes: Number(amount),
+          mpesa_code: mpesa || null,
+          screenshot_url,
+        })
+        .catch(async (err) => {
+          if (isBackendUnavailableError(err)) {
+            return submitDepositFallback({
+              amount_kes: Number(amount),
+              mpesa_code: mpesa || null,
+              screenshot_url,
+            });
+          }
+          throw err;
+        });
       setAmount('');
       setMpesa('');
       setFile(null);

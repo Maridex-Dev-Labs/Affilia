@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import Sidebar from '@/components/layout/Sidebar';
@@ -40,7 +41,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-kenya-navy text-white">
+    <div className="dashboard-shell min-h-screen bg-kenya-navy text-white">
       <div className="flex max-w-[1600px] mx-auto w-full">
         <Sidebar />
         <div className="flex min-h-screen flex-1 flex-col">
@@ -48,9 +49,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="px-4 md:px-8 pt-4">
             <BroadcastBanner />
           </div>
-          <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8">
+          <motion.main
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8"
+          >
             <div className="mx-auto max-w-6xl">{children}</div>
-          </main>
+          </motion.main>
           <MobileNav />
         </div>
       </div>

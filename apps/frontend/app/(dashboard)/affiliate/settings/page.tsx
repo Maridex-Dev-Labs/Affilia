@@ -6,6 +6,9 @@ import { supabase } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
 import Button from '@/components/ui/Button';
 import { uploadProfileAvatar } from '@/lib/supabase/storage';
+import LegalAgreementForm from '@/components/legal/LegalAgreementForm';
+import AccountDeletionCard from '@/components/settings/AccountDeletionCard';
+import PlanSelectionCard from '@/components/settings/PlanSelectionCard';
 
 export default function Page() {
   const { profile } = useProfile();
@@ -57,7 +60,7 @@ export default function Page() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-black italic">Affiliate Settings</h1>
-        <p className="text-muted mt-2">Control your profile, payout destination, and promotion profile.</p>
+        <p className="text-muted mt-2">Control your profile, payout destination, promotion profile, and legal agreement status.</p>
       </div>
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="card-surface p-6">
@@ -89,6 +92,9 @@ export default function Page() {
           <Button loading={saving} loadingText="Saving settings..." onClick={save}>Save Changes</Button>
         </div>
       </div>
+      {profile ? <PlanSelectionCard role="affiliate" profileId={profile.id} defaultPhone={payoutPhone || phone} /> : null}
+      <LegalAgreementForm agreementType="affiliate" mode="settings" submitLabel="Submit Updated Agreement" />
+      <AccountDeletionCard />
     </div>
   );
 }

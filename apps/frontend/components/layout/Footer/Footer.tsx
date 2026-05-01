@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Footer() {
   return (
@@ -6,8 +7,7 @@ export default function Footer() {
       <div className="mx-auto mb-12 grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-5">
         <div className="col-span-2">
           <Link href="/" className="mb-4 flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg kenya-flag-gradient text-sm font-black italic text-white">A</div>
-            <span className="text-xl font-black text-white">Affilia.</span>
+            <BrandLogo markClassName="h-10 w-10" textClassName="text-xl font-black text-white" />
           </Link>
           <p className="max-w-xs text-sm text-[#7e869a]">
             Bridge local merchants with high-performing marketers in Nakuru, Kenya.

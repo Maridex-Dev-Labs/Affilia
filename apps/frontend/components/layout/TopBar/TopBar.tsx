@@ -1,8 +1,10 @@
 'use client';
 
 import { Bell, SignOut, UserCircle } from '@phosphor-icons/react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
+import BrandLogo, { BrandMark } from '@/components/shared/BrandLogo';
 
 export default function TopBar() {
   const { profile } = useProfile();
@@ -16,15 +18,24 @@ export default function TopBar() {
   };
 
   return (
-    <div className="border-b border-white/8 bg-[#0A0E17]/92 px-4 py-4 backdrop-blur-xl md:px-8">
+    <motion.div
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="border-b border-white/8 bg-[#0A0E17]/88 px-4 py-4 backdrop-blur-xl md:px-8"
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-3">
+          <BrandMark className="hidden h-12 w-12 md:block" />
+          <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#7e869a]">{mode} Portal</div>
           <div className="mt-1 text-xl font-black italic text-white">{profile?.business_name || profile?.full_name || 'Affilia Workspace'}</div>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden rounded-full border border-white/8 bg-black px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white/65 md:block">
-            <span className={accent}>Live</span> Dashboard
+          <div className="hidden items-center gap-3 rounded-full border border-white/8 bg-black px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white/65 md:flex">
+            <BrandLogo withText={false} markClassName="h-7 w-7" />
+            <span><span className={accent}>Live</span> Dashboard</span>
           </div>
           <button className="flex h-11 w-11 items-center justify-center rounded-full border border-white/8 bg-[#141A2B] text-white transition hover:border-white/20 hover:bg-white/5">
             <Bell size={20} weight="duotone" />
@@ -38,6 +49,6 @@ export default function TopBar() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

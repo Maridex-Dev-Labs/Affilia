@@ -5,6 +5,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
+import BrandLogo from '@/components/shared/BrandLogo';
+
+function buildAuthRedirect(path: string) {
+  return `${window.location.origin}${path}`;
+}
 
 export default function Page() {
   const router = useRouter();
@@ -40,7 +45,7 @@ export default function Page() {
     setOauthProvider(provider);
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
+      options: { redirectTo: buildAuthRedirect('/auth/callback?flow=oauth&next=/dashboard') },
     });
     if (err) {
       setError(err.message);
@@ -51,6 +56,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md card-surface p-8">
+        <BrandLogo className="mb-6" markClassName="h-14 w-14" textClassName="text-2xl font-black italic text-white" priority />
         <div className="mb-6 flex items-center justify-between text-xs font-bold uppercase tracking-[0.24em] text-[#7e869a]">
           <span>Access Affilia</span>
           <Link href="/signup" className="text-[#009A44] hover:text-white">Create account</Link>

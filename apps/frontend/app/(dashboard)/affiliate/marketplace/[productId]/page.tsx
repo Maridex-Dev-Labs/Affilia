@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { ArrowClockwise } from '@phosphor-icons/react';
 
 import { affiliateApi } from '@/lib/api/affiliate';
+import { isBackendUnavailableError } from '@/lib/api/client';
+import { generateAffiliateLinkFallback } from '@/lib/api/fallbacks';
 import { supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
@@ -38,7 +40,12 @@ export default function Page() {
 
   const generateLink = async () => {
     try {
-      const data = await affiliateApi.generateLink({ product_id: params.productId });
+      const data = await affiliateApi.generateLink({ product_id: params.productId }).catch(async (err) => {
+        if (isBackendUnavailableError(err)) {
+          return generateAffiliateLinkFallback(params.productId);
+        }
+        throw err;
+      });
       setStatus(`Smart link created: ${data.code}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to generate link.';

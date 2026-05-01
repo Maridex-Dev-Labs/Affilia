@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { merchantApi } from '@/lib/api/merchant';
+import { isBackendUnavailableError } from '@/lib/api/client';
+import { loadEscrowFallback } from '@/lib/api/fallbacks';
 import MpesaDepositForm from '@/components/forms/MpesaDepositForm/MpesaDepositForm';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -29,7 +31,12 @@ export default function Page() {
     setLoading(true);
     setError(null);
     try {
-      const data = await merchantApi.escrow();
+      const data = await merchantApi.escrow().catch(async (err) => {
+        if (isBackendUnavailableError(err)) {
+          return loadEscrowFallback();
+        }
+        throw err;
+      });
       setEscrow({ balance_kes: data.balance || 0 });
       setDeposits(data.deposits || []);
     } catch (err: unknown) {

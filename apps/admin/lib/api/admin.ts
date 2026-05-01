@@ -9,4 +9,7 @@ export const adminApi = {
   approveDeposit: async (depositId: string) => (await adminApiClient.post(`/api/admin/deposits/${depositId}/approve`)).data,
   sweepPreview: async () => (await adminApiClient.get('/api/admin/sweep/preview')).data,
   confirmSweep: async () => (await adminApiClient.post('/api/admin/sweep/confirm')).data,
+  contractReviewQueue: async () => (await adminApiClient.get('/api/contracts/admin/review-queue')).data,
+  reviewContract: async (agreementId: string, payload: { action: 'approve' | 'reject' | 'request_revision'; review_notes?: string; rejection_reason?: string }) =>
+    (await adminApiClient.post(`/api/contracts/admin/${agreementId}/review`, payload)).data,
 };

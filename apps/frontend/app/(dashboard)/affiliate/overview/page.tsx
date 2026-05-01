@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
-import { affiliateApi } from '@/lib/api/affiliate';
-import { supabase } from '@/lib/supabase/client';
+import { loadAffiliateOverview } from '@/lib/dashboard/affiliate-overview';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { levels } from '@/lib/config/levels';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
@@ -31,6 +31,7 @@ type TrendingProduct = {
 };
 
 export default function Page() {
+  const { user } = useAuth();
   const { profile } = useProfile();
   const [stats, setStats] = useState<StatCard[]>([]);
   const [trending, setTrending] = useState<TrendingProduct[]>([]);
@@ -41,28 +42,30 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [dashboard, productResult] = await Promise.all([
-          affiliateApi.dashboard(),
-          supabase.from('products').select('*').eq('is_active', true).eq('moderation_status', 'approved').limit(4),
-        ]);
+        const dashboard = await loadAffiliateOverview(user.id);
         setUserRank(dashboard.rank ?? null);
-        setLeaderboardTotal(dashboard.leaderboard_total || 0);
+        setLeaderboardTotal(dashboard.leaderboardTotal || 0);
         setStats([
           { label: "Today's Earnings", value: `KES ${dashboard.today || 0}`, delta: 'Today' },
           { label: 'Total Earnings', value: `KES ${dashboard.total || 0}`, delta: 'Lifetime' },
           { label: 'Active Links', value: `${dashboard.links || 0}`, delta: `${dashboard.clicks || 0} Clicks` },
-          { label: 'Weekly Rank', value: dashboard.rank ? `#${dashboard.rank}` : '#-', delta: `${dashboard.leaderboard_total || 0} Affiliates` },
+          { label: 'Weekly Rank', value: dashboard.rank ? `#${dashboard.rank}` : '#-', delta: `${dashboard.leaderboardTotal || 0} Affiliates` },
         ]);
         setChallenges([
           { label: 'Generate 5 links', progress: `${Math.min(dashboard.links || 0, 5)}/5`, percent: Math.min(100, ((dashboard.links || 0) / 5) * 100) },
           { label: 'Make 1 sale today', progress: dashboard.today > 0 ? '1/1' : '0/1', percent: dashboard.today > 0 ? 100 : 0 },
           { label: 'Get 10 clicks today', progress: `${Math.min(dashboard.clicks || 0, 10)}/10`, percent: Math.min(100, ((dashboard.clicks || 0) / 10) * 100) },
         ]);
-        setTrending(productResult.data || []);
+        setTrending(dashboard.trending || []);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load affiliate overview.';
         setError(message);
@@ -71,7 +74,7 @@ export default function Page() {
       }
     };
     load();
-  }, []);
+  }, [user]);
 
   const xp = profile?.xp_points || 0;
   const currentLevel = useMemo(() => levels.slice().reverse().find((l) => xp >= l.xp) || levels[0], [xp]);

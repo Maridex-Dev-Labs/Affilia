@@ -10,6 +10,8 @@ export default function Page() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [audience, setAudience] = useState<'all' | 'merchant' | 'affiliate'>('all');
+  const [status, setStatus] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
     const { data } = await supabase.from('broadcasts').select('*').order('created_at', { ascending: false });
@@ -22,21 +24,42 @@ export default function Page() {
 
   const send = async () => {
     if (!title || !message || !user) return;
-    await supabase.from('broadcasts').insert({
+    setStatus(null);
+    const { error } = await supabase.from('broadcasts').insert({
       title,
       message,
       audience,
       created_by: user.id,
     });
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
     setTitle('');
     setMessage('');
     setAudience('all');
+    setStatus('Broadcast sent.');
     load();
+  };
+
+  const remove = async (broadcastId: string) => {
+    setBusyId(broadcastId);
+    setStatus(null);
+    const { error } = await supabase.from('broadcasts').delete().eq('id', broadcastId);
+    setBusyId(null);
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+    setItems((current) => current.filter((item) => item.id !== broadcastId));
+    setStatus('Broadcast deleted.');
   };
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Broadcasts</h1>
+
+      {status ? <div className="card-surface p-4 text-sm text-muted">{status}</div> : null}
 
       <div className="card-surface p-6 space-y-4">
         <h3 className="text-lg font-bold">Send Broadcast</h3>
@@ -73,6 +96,7 @@ export default function Page() {
               <th className="py-2">Title</th>
               <th className="py-2">Audience</th>
               <th className="py-2">Created</th>
+              <th className="py-2 text-right">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -81,11 +105,20 @@ export default function Page() {
                 <td className="py-3">{b.title}</td>
                 <td className="py-3">{b.audience}</td>
                 <td className="py-3">{new Date(b.created_at).toLocaleString('en-KE')}</td>
+                <td className="py-3 text-right">
+                  <button
+                    className="rounded-full border border-red-400/40 px-4 py-2 text-xs text-red-200 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => remove(b.id)}
+                    disabled={busyId === b.id}
+                  >
+                    {busyId === b.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={3} className="py-6 text-muted">
+                <td colSpan={4} className="py-6 text-muted">
                   No broadcasts yet.
                 </td>
               </tr>
