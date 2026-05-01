@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { receiptsApi } from '@/lib/api/receipts';
 import { isBackendUnavailableError } from '@/lib/api/client';
 import { getReceiptFallback } from '@/lib/api/fallbacks';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 type ReceiptDetail = {
   receipt_number: string;
@@ -32,8 +33,7 @@ export default function Page() {
         });
         setReceipt(data);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load receipt.';
-        setError(message);
+        setError(sanitizeUserFacingError(err, 'This receipt is temporarily unavailable.'));
       }
     };
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { usersApi } from '@/lib/api/users';
+import { sanitizeUserFacingError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase/client';
 
 export default function AccountDeletionCard() {
@@ -20,7 +21,7 @@ export default function AccountDeletionCard() {
       await supabase.auth.signOut();
       router.push('/login');
     } catch (error: any) {
-      setStatus(error.message || 'Failed to delete account.');
+      setStatus(sanitizeUserFacingError(error, 'We could not process account deletion right now.'));
     } finally {
       setBusy(false);
     }

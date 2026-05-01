@@ -10,7 +10,7 @@ type AuthenticatedUser = {
 function getRequiredEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'NEXT_PUBLIC_SUPABASE_ANON_KEY' | 'SUPABASE_SERVICE_ROLE_KEY') {
   const value = process.env[name];
   if (!value) {
-    throw new Error(`Missing required server environment variable: ${name}`);
+    throw new Error('Workspace services are temporarily unavailable.');
   }
   return value;
 }
@@ -46,13 +46,13 @@ export async function getAuthenticatedUserFromRequest(request: Request): Promise
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
 
   if (!token) {
-    throw new Error('Missing bearer token.');
+    throw new Error('Please sign in and try again.');
   }
 
   const anonClient = createAnonServerClient();
   const { data, error } = await anonClient.auth.getUser(token);
   if (error || !data.user) {
-    throw new Error('Invalid user session.');
+    throw new Error('Please sign in and try again.');
   }
 
   return {

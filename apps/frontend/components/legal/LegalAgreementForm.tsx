@@ -7,6 +7,7 @@ import { contractApi } from '@/lib/api/contracts';
 import { uploadSignedAgreement, createSignedStorageUrl } from '@/lib/supabase/storage';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { contractMeta, type AgreementType } from '@/lib/legal/contracts';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 const badgeStyles: Record<string, string> = {
   pending: 'bg-white/10 text-white',
@@ -60,7 +61,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
         setContractStatus(data.contract_status || data.agreement?.status || null);
       } catch (err: any) {
         if (!mounted) return;
-        setError(err.message || 'Failed to load current agreement status.');
+        setError(sanitizeUserFacingError(err, 'We could not load the agreement status right now.'));
       } finally {
         if (mounted) setLoadingCurrent(false);
       }
@@ -82,7 +83,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
       link.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      setError(err.message || 'Failed to download agreement PDF.');
+      setError(sanitizeUserFacingError(err, 'We could not prepare the agreement PDF right now.'));
     }
   };
 
@@ -99,7 +100,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
       setSignedType(file.type || 'application/pdf');
       setStatusMessage('Signed contract uploaded.');
     } catch (err: any) {
-      setError(err.message || 'Failed to upload signed contract.');
+      setError(sanitizeUserFacingError(err, 'We could not upload the signed contract right now.'));
     } finally {
       setUploading(false);
     }
@@ -111,7 +112,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
       const url = await createSignedStorageUrl('legal-agreements', signedPath);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err: any) {
-      setError(err.message || 'Failed to open uploaded contract copy.');
+      setError(sanitizeUserFacingError(err, 'We could not open the uploaded contract right now.'));
     }
   };
 
@@ -141,7 +142,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
       setStatusMessage('Agreement submitted. It is now waiting for admin review.');
       await afterSubmit?.();
     } catch (err: any) {
-      setError(err.message || 'Agreement submission failed.');
+      setError(sanitizeUserFacingError(err, 'We could not submit the agreement right now.'));
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,7 @@ import { loadMerchantOverview } from '@/lib/dashboard/merchant-overview';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { levels } from '@/lib/config/levels';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 type StatCard = {
   label: string;
@@ -54,8 +55,7 @@ export default function Page() {
         setTransactions(data.recent_transactions || []);
         setPendingActions(data.pending_actions || []);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load merchant overview.';
-        setError(message);
+        setError(sanitizeUserFacingError(err, 'We could not load the merchant overview right now.'));
       } finally {
         setLoading(false);
       }

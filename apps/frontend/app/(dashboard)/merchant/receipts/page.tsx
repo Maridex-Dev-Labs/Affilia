@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { receiptsApi } from '@/lib/api/receipts';
 import { isBackendUnavailableError } from '@/lib/api/client';
 import { listReceiptsFallback } from '@/lib/api/fallbacks';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 type ReceiptRow = {
   id: string;
@@ -33,8 +34,7 @@ export default function Page() {
         });
         setReceipts(data.items || []);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load receipts.';
-        setError(message);
+        setError(sanitizeUserFacingError(err, 'Receipts are temporarily unavailable.'));
       } finally {
         setLoading(false);
       }

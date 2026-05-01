@@ -9,6 +9,7 @@ import { uploadProfileAvatar } from '@/lib/supabase/storage';
 import LegalAgreementForm from '@/components/legal/LegalAgreementForm';
 import AccountDeletionCard from '@/components/settings/AccountDeletionCard';
 import PlanSelectionCard from '@/components/settings/PlanSelectionCard';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 export default function Page() {
   const { profile } = useProfile();
@@ -53,7 +54,7 @@ export default function Page() {
         avatar_url: avatarUrl,
       })
       .eq('id', profile.id);
-    setStatus(error ? error.message : 'Settings updated successfully.');
+    setStatus(error ? sanitizeUserFacingError(error, 'We could not save settings right now.') : 'Settings updated successfully.');
     setSaving(false);
   };
 

@@ -5,6 +5,7 @@ import { ChatCircleDots, PaperPlaneTilt, Plus, ThumbsDown, ThumbsUp, Users } fro
 
 import Button, { SecondaryButton } from '@/components/ui/Button';
 import { communityApi } from '@/lib/api/community';
+import { sanitizeUserFacingError } from '@/lib/errors';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { supabase } from '@/lib/supabase/client';
@@ -110,7 +111,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       .select('thread_id')
       .eq('user_id', user.id);
     if (membershipsError) {
-      setStatus(membershipsError.message);
+      setStatus(sanitizeUserFacingError(membershipsError, 'Community is temporarily unavailable.'));
       return;
     }
 
@@ -131,7 +132,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
 
     const queryError = threadsError || membersError || messagesError;
     if (queryError) {
-      setStatus(queryError.message);
+      setStatus(sanitizeUserFacingError(queryError, 'Community is temporarily unavailable.'));
       return;
     }
 
@@ -143,7 +144,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
         ? await supabase.from('profiles').select('id, full_name, business_name, avatar_url, role').in('id', otherIds)
         : { data: [] as ProfileLite[], error: null };
     if (profilesError) {
-      setStatus(profilesError.message);
+      setStatus(sanitizeUserFacingError(profilesError, 'Community is temporarily unavailable.'));
       return;
     }
 
@@ -173,7 +174,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
     }
     const { data, error } = await supabase.from('chat_messages').select('*').eq('thread_id', threadId).order('created_at');
     if (error) {
-      setStatus(error.message);
+      setStatus(sanitizeUserFacingError(error, 'Messages are temporarily unavailable.'));
       return;
     }
     setMessages((data || []) as MessageItem[]);
@@ -186,7 +187,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       .in('role', ['merchant', 'affiliate'])
       .limit(80);
     if (error) {
-      setStatus(error.message);
+      setStatus(sanitizeUserFacingError(error, 'Community directory is temporarily unavailable.'));
       return;
     }
     setDirectory((data || []) as ProfileLite[]);
@@ -201,7 +202,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       .order('created_at', { ascending: false })
       .limit(30);
     if (postsError) {
-      setStatus(postsError.message);
+      setStatus(sanitizeUserFacingError(postsError, 'Forum is temporarily unavailable.'));
       return;
     }
 
@@ -219,7 +220,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
     ]);
     const forumQueryError = commentsError || reactionsError;
     if (forumQueryError) {
-      setStatus(forumQueryError.message);
+      setStatus(sanitizeUserFacingError(forumQueryError, 'Forum is temporarily unavailable.'));
       return;
     }
 
@@ -241,7 +242,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
         ? await supabase.from('profiles').select('id, full_name, business_name, avatar_url, role').in('id', lookupIds)
         : { data: [] as ProfileLite[], error: null };
     if (profilesError) {
-      setStatus(profilesError.message);
+      setStatus(sanitizeUserFacingError(profilesError, 'Forum is temporarily unavailable.'));
       return;
     }
 
@@ -344,7 +345,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       await loadThreads();
       setSelectedThreadId(result.thread?.id || null);
     } catch (error: unknown) {
-      setStatus(error instanceof Error ? error.message : 'Failed to start conversation.');
+      setStatus(sanitizeUserFacingError(error, 'We could not start the conversation right now.'));
     } finally {
       setBusyKey(null);
     }
@@ -360,7 +361,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       await communityApi.sendMessage({ thread_id: selectedThreadId, body });
       await loadThreads();
     } catch (error: unknown) {
-      setStatus(error instanceof Error ? error.message : 'Failed to send message.');
+      setStatus(sanitizeUserFacingError(error, 'We could not send the message right now.'));
       setMessageBody(body);
     } finally {
       setBusyKey(null);
@@ -406,7 +407,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       setStatus('Forum post submitted. It is visible to you immediately and awaits admin moderation.');
       await loadForum();
     } catch (error: unknown) {
-      setStatus(error instanceof Error ? error.message : 'Failed to create forum post.');
+      setStatus(sanitizeUserFacingError(error, 'We could not publish the forum post right now.'));
     } finally {
       setBusyKey(null);
     }
@@ -418,7 +419,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
     setStatus(null);
     const { error } = await supabase.from('forum_comments').insert({ post_id: postId, author_id: user.id, body });
     if (error) {
-      setStatus(error.message);
+      setStatus(sanitizeUserFacingError(error, 'We could not add the comment right now.'));
       return;
     }
     setCommentDrafts((current) => ({ ...current, [postId]: '' }));
@@ -437,7 +438,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
         .eq('post_id', postId)
         .eq('user_id', user.id);
       if (error) {
-        setStatus(error.message);
+        setStatus(sanitizeUserFacingError(error, 'We could not update the reaction right now.'));
         return;
       }
     } else {
@@ -446,7 +447,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
         { onConflict: 'post_id,user_id' },
       );
       if (error) {
-        setStatus(error.message);
+        setStatus(sanitizeUserFacingError(error, 'We could not update the reaction right now.'));
         return;
       }
     }

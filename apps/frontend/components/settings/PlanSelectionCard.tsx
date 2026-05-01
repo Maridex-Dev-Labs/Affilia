@@ -5,6 +5,7 @@ import { CheckCircle, Copy, CreditCard, Wallet } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import { affiliatePlans, formatKes, merchantPlans, paymentChannels, type PlanRole } from '@/lib/config/pricing';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 type PlanSelectionRecord = {
   profile_id: string;
@@ -72,7 +73,7 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
       .maybeSingle();
 
     if (error) {
-      setStatus(error.message);
+      setStatus(sanitizeUserFacingError(error, 'Package information is temporarily unavailable.'));
       setLoading(false);
       return;
     }
@@ -125,7 +126,7 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
 
     const { error } = await supabase.from('profile_plan_selections').upsert(payload, { onConflict: 'profile_id' });
     if (error) {
-      setStatus(error.message);
+      setStatus(sanitizeUserFacingError(error, 'We could not reserve the package right now.'));
       setSaving(false);
       return;
     }
@@ -162,7 +163,7 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
       .eq('profile_id', profileId);
 
     if (error) {
-      setStatus(error.message);
+      setStatus(sanitizeUserFacingError(error, 'We could not submit the payment confirmation right now.'));
       setSubmittingPayment(false);
       return;
     }

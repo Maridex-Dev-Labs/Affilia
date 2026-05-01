@@ -4,12 +4,21 @@ import axios from 'axios';
 
 import { supabase } from '@/lib/supabase/admin-client';
 
+const STORAGE_KEY = 'affilia:admin:backend-outage';
+const BACKEND_OUTAGE_CODES = new Set(['ERR_NETWORK', 'ECONNABORTED', 'ENOTFOUND', 'ECONNREFUSED']);
+
 function recordAdminBackendOutage(message: string) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(
-    'affilia:admin:backend-outage',
+    STORAGE_KEY,
     JSON.stringify({ message, timestamp: new Date().toISOString() }),
   );
+  window.dispatchEvent(new CustomEvent('affilia:admin:backend-outage'));
+}
+
+function clearAdminBackendOutage() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(STORAGE_KEY);
   window.dispatchEvent(new CustomEvent('affilia:admin:backend-outage'));
 }
 
@@ -55,9 +64,12 @@ adminApiClient.interceptors.request.use(async (config) => {
 });
 
 adminApiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    clearAdminBackendOutage();
+    return response;
+  },
   async (error) => {
-    if (axios.isAxiosError(error) && !error.response) {
+    if (axios.isAxiosError(error) && !error.response && BACKEND_OUTAGE_CODES.has(error.code || '')) {
       await persistAdminBackendOutage(error);
       return Promise.reject(new Error('Backend unavailable. Admin-sensitive operations require the API service.'));
     }

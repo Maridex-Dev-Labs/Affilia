@@ -10,6 +10,7 @@ import { generateAffiliateLinkFallback } from '@/lib/api/fallbacks';
 import { supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 type ProductDetail = {
   id: string;
@@ -48,8 +49,7 @@ export default function Page() {
       });
       setStatus(`Smart link created: ${data.code}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to generate link.';
-      setStatus(message);
+      setStatus(sanitizeUserFacingError(err, 'We could not generate a smart link right now.'));
     }
   };
 

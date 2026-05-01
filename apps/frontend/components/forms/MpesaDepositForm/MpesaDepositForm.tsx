@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { isBackendUnavailableError } from '@/lib/api/client';
 import { submitDepositFallback } from '@/lib/api/fallbacks';
 import { merchantApi } from '@/lib/api/merchant';
+import { sanitizeUserFacingError } from '@/lib/errors';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { uploadDepositScreenshot } from '@/lib/supabase/storage';
 
@@ -60,8 +61,7 @@ export default function MpesaDepositForm({ onCreated }: Props) {
       setSuccess('Deposit request submitted.');
       onCreated?.();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to submit deposit.';
-      setError(message);
+      setError(sanitizeUserFacingError(err, 'We could not submit the deposit request right now.'));
     } finally {
       setLoading(false);
     }

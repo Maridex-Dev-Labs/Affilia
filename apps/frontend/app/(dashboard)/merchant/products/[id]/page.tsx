@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowClockwise, ClockCounterClockwise, FileImage, FileVideo } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/client';
 import Button, { SecondaryButton } from '@/components/ui/Button';
+import { sanitizeUserFacingError } from '@/lib/errors';
 import { PRODUCT_MEDIA_GUIDELINES, getPrimaryMediaUrl, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
 import { uploadProductMedia } from '@/lib/supabase/storage';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -78,7 +79,7 @@ export default function Page() {
       if (updateError) throw updateError;
       router.push('/merchant/products');
     } catch (err: any) {
-      setError(err.message || 'Failed to update the product.');
+      setError(sanitizeUserFacingError(err, 'We could not update the product right now.'));
     } finally {
       setSaving(false);
     }

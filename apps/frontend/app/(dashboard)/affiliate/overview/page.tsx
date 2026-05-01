@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { levels } from '@/lib/config/levels';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
+import { sanitizeUserFacingError } from '@/lib/errors';
 
 type StatCard = {
   label: string;
@@ -67,8 +68,7 @@ export default function Page() {
         ]);
         setTrending(dashboard.trending || []);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load affiliate overview.';
-        setError(message);
+        setError(sanitizeUserFacingError(err, 'We could not load the affiliate overview right now.'));
       } finally {
         setLoading(false);
       }

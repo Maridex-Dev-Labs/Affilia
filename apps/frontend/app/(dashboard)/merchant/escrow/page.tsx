@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { merchantApi } from '@/lib/api/merchant';
 import { isBackendUnavailableError } from '@/lib/api/client';
 import { loadEscrowFallback } from '@/lib/api/fallbacks';
+import { sanitizeUserFacingError } from '@/lib/errors';
 import MpesaDepositForm from '@/components/forms/MpesaDepositForm/MpesaDepositForm';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -40,8 +41,7 @@ export default function Page() {
       setEscrow({ balance_kes: data.balance || 0 });
       setDeposits(data.deposits || []);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load escrow data.';
-      setError(message);
+      setError(sanitizeUserFacingError(err, 'Escrow information is temporarily unavailable.'));
     } finally {
       setLoading(false);
     }

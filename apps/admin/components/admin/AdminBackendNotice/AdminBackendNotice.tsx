@@ -10,6 +10,7 @@ type OutageState = {
 } | null;
 
 const STORAGE_KEY = 'affilia:admin:backend-outage';
+const MAX_NOTICE_AGE_MS = 5 * 60 * 1000;
 
 export default function AdminBackendNotice() {
   const [outage, setOutage] = useState<OutageState>(null);
@@ -18,7 +19,18 @@ export default function AdminBackendNotice() {
     const sync = () => {
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
-        setOutage(raw ? JSON.parse(raw) : null);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (!parsed?.timestamp) {
+          setOutage(null);
+          return;
+        }
+        const age = Date.now() - new Date(parsed.timestamp).getTime();
+        if (age > MAX_NOTICE_AGE_MS) {
+          window.localStorage.removeItem(STORAGE_KEY);
+          setOutage(null);
+          return;
+        }
+        setOutage(parsed);
       } catch {
         setOutage(null);
       }

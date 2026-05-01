@@ -6,6 +6,7 @@ import { FileImage, FileVideo, ShieldCheck } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Button from '@/components/ui/Button';
+import { sanitizeUserFacingError } from '@/lib/errors';
 import { PRODUCT_MEDIA_GUIDELINES, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
 import { uploadProductMedia } from '@/lib/supabase/storage';
 
@@ -82,7 +83,7 @@ export default function Page() {
       if (insertError) throw insertError;
       router.push('/merchant/products');
     } catch (err: any) {
-      setError(err.message || 'Failed to submit the product for review.');
+      setError(sanitizeUserFacingError(err, 'We could not submit the product for review right now.'));
     } finally {
       setSaving(false);
     }

@@ -10,30 +10,52 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-      .then(async ({ data, error }) => {
-        if (!data && error) {
-          const { data: created } = await supabase.from('profiles').upsert({
-            id: user.id,
-            full_name: user.user_metadata?.full_name ?? '',
-            role: null,
-            onboarding_complete: false,
-          }).select('*').single();
-          setProfile(created);
-        } else {
-          setProfile(data);
+    let active = true;
+
+    const load = async () => {
+      if (!user) {
+        if (active) {
+          setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
-      });
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!data && error) {
+          const { data: created } = await supabase
+            .from('profiles')
+            .upsert({
+              id: user.id,
+              full_name: user.user_metadata?.full_name ?? '',
+              role: null,
+              onboarding_complete: false,
+            })
+            .select('*')
+            .single();
+          if (active) setProfile(created || null);
+        } else if (active) {
+          setProfile(data || null);
+        }
+      } catch {
+        if (active) setProfile(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    setLoading(true);
+    load();
+
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   return { profile, loading };

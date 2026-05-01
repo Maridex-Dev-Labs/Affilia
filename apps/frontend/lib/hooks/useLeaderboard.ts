@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { sanitizeUserFacingError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -64,8 +65,7 @@ export function useLeaderboard() {
         setTotal(normalizedRows.length);
         setUserRank(normalizedRows.find((row) => row.id === user.id)?.rank ?? null);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load leaderboard.';
-        setError(message);
+        setError(sanitizeUserFacingError(err, 'Leaderboard data is temporarily unavailable.'));
       } finally {
         setLoading(false);
       }
