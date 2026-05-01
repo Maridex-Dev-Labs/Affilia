@@ -1,5 +1,6 @@
 from fastapi import Header, HTTPException, status
 
+from app.core.exceptions import UpstreamServiceError
 from app.db.supabase import get_user_from_token, select
 
 def get_current_user(authorization: str | None = Header(None)):
@@ -9,6 +10,8 @@ def get_current_user(authorization: str | None = Header(None)):
     try:
         user = get_user_from_token(token)
         return user
+    except UpstreamServiceError:
+        raise
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
 

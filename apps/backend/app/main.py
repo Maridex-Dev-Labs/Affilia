@@ -5,6 +5,7 @@ from starlette.responses import JSONResponse, Response
 
 from .api.v1.router import api_router
 from .config import settings
+from .core.exceptions import UpstreamServiceError
 from .core.logging import configure_logging
 from .middleware.cors import allowed_origins, trusted_hosts
 
@@ -21,8 +22,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"],
 )
 
 app.add_middleware(
@@ -34,6 +35,8 @@ app.add_middleware(
 @app.middleware("http")
 async def enforce_origin_allowlist(request: Request, call_next):
     origin = request.headers.get("origin")
+    if request.method == "OPTIONS":
+        return await call_next(request)
     if origin and not settings.origin_allowed(origin):
         return JSONResponse({"detail": "Origin not allowed."}, status_code=403)
     return await call_next(request)
@@ -51,6 +54,11 @@ async def add_security_headers(request: Request, call_next):
     if settings.is_production:
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     return response
+
+
+@app.exception_handler(UpstreamServiceError)
+async def handle_upstream_service_error(_: Request, exc: UpstreamServiceError):
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
 app.include_router(api_router, prefix="/api")

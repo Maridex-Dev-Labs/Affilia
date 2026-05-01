@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -13,6 +14,15 @@ load_dotenv(BACKEND_ROOT / ".env")
 def _csv_env(name: str, default: str = "") -> list[str]:
     raw = os.getenv(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _parsed_origin(value: str | None) -> tuple[str, str | None, int | None] | None:
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if not parsed.scheme or not parsed.hostname:
+        return None
+    return (parsed.scheme.lower(), parsed.hostname.lower(), parsed.port)
 
 
 class Settings(BaseModel):
@@ -58,10 +68,41 @@ class Settings(BaseModel):
             raise RuntimeError("SECRET_KEY must be set to a non-default value in production.")
 
     def origin_allowed(self, origin: str | None) -> bool:
-        return not origin or origin in self.CORS_ALLOW_ORIGINS
+        if not origin:
+            return True
+        if origin in self.CORS_ALLOW_ORIGINS:
+            return True
+
+        parsed_origin = _parsed_origin(origin)
+        if not parsed_origin:
+            return False
+
+        if not self.is_production and parsed_origin[1] in {"localhost", "127.0.0.1"}:
+            return True
+
+        for candidate in self.CORS_ALLOW_ORIGINS:
+            parsed_candidate = _parsed_origin(candidate)
+            if not parsed_candidate:
+                continue
+            same_scheme = parsed_candidate[0] == parsed_origin[0]
+            same_port = parsed_candidate[2] == parsed_origin[2]
+            loopback_pair = {parsed_candidate[1], parsed_origin[1]} <= {"localhost", "127.0.0.1"}
+            if same_scheme and same_port and loopback_pair:
+                return True
+        return False
 
     def iter_allowed_origins(self) -> Iterable[str]:
-        return tuple(self.CORS_ALLOW_ORIGINS)
+        origins = list(dict.fromkeys(self.CORS_ALLOW_ORIGINS))
+        if not self.is_production:
+            dev_pairs = []
+            for origin in origins:
+                parsed = _parsed_origin(origin)
+                if not parsed or parsed[1] not in {"localhost", "127.0.0.1"} or parsed[2] is None:
+                    continue
+                alternate_host = "127.0.0.1" if parsed[1] == "localhost" else "localhost"
+                dev_pairs.append(f"{parsed[0]}://{alternate_host}:{parsed[2]}")
+            origins.extend(dev_pairs)
+        return tuple(dict.fromkeys(origins))
 
     def iter_trusted_hosts(self) -> Iterable[str]:
         return tuple(self.TRUSTED_HOSTS)
