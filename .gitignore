@@ -16,3 +16,4 @@ __pycache__
 .codex
 venv
 */venv
+*.tsbuildinfo
