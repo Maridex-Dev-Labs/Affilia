@@ -16,6 +16,7 @@ import KenyanShieldLoader from '@/components/shared/KenyanShieldLoader';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const safePathname = pathname ?? '';
   const { user, loading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { canAccessPath, loading: planAccessLoading, isAffiliateVerified, activePlanCode } = usePlanAccess();
@@ -36,7 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   }, [profile, profileLoading, router]);
 
-  if (loading || profileLoading || planAccessLoading) {
+  if (loading || profileLoading || planAccessLoading || !safePathname) {
     return (
       <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center">
         <KenyanShieldLoader label="Preparing your workspace..." />
@@ -46,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const showWorkspaceGate =
     Boolean(profile?.role && (profile.role === 'merchant' || profile.role === 'affiliate')) &&
-    !canAccessPath(pathname);
+    !canAccessPath(safePathname);
 
   return (
     <div className="dashboard-shell min-h-screen bg-kenya-navy text-white">

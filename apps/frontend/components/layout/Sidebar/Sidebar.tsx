@@ -12,6 +12,7 @@ import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const safePathname = pathname ?? '';
   const { profile } = useProfile();
   const { canAccessPath, isAffiliateVerified, activePlanCode } = usePlanAccess();
   const items = (profile?.role === 'merchant' ? merchantNav : affiliateNav).filter((item) => canAccessPath(item.href));
@@ -40,7 +41,7 @@ export default function Sidebar() {
       <div className="flex flex-1 flex-col gap-1 px-3 pb-8">
         {items.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href;
+          const active = safePathname === item.href;
           return (
             <motion.div key={item.href} whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }}>
             <Link

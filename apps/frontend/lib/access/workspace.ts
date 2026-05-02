@@ -64,7 +64,8 @@ const FEATURE_ROUTE_MAP = {
   },
 } as const;
 
-function routeMatches(pathname: string, route: string) {
+function routeMatches(pathname: string | null | undefined, route: string) {
+  if (!pathname) return false;
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
@@ -85,7 +86,7 @@ export function canAccessWorkspacePath({
   affiliateVerificationStatus,
 }: {
   role: PlanRole;
-  pathname: string;
+  pathname: string | null | undefined;
   activePlanCode: string | null | undefined;
   affiliateVerificationStatus?: string | null;
 }) {

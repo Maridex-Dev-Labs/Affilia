@@ -11,6 +11,7 @@ import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const safePathname = pathname ?? '';
   const { profile } = useProfile();
   const { canAccessPath } = usePlanAccess();
   const [open, setOpen] = useState(false);
@@ -41,7 +42,7 @@ export default function MobileNav() {
             <div className="grid grid-cols-2 gap-3">
               {items.map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href;
+                const active = safePathname === item.href;
                 return (
                   <Link
                     key={item.href}
@@ -61,7 +62,7 @@ export default function MobileNav() {
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around border-t border-white/8 bg-[#141A2B]/95 px-2 py-2 backdrop-blur-xl lg:hidden">
         {primaryItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href;
+          const active = safePathname === item.href;
           return (
             <Link key={item.href} href={item.href} className={`flex min-w-[64px] flex-col items-center p-2 ${active ? accent : 'text-[#6d7587]'}`}>
               <Icon size={24} weight={active ? 'fill' : 'regular'} className={active ? 'scale-110' : ''} />
