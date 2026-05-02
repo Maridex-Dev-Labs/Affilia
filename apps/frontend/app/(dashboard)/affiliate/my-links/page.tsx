@@ -1,50 +1,121 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import QRCode from '@/components/shared/QRCode/QRCode';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { affiliateApi } from '@/lib/api/affiliate';
+import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
+import { sanitizeUserFacingError } from '@/lib/errors';
+
+type LinkRow = {
+  id: string;
+  unique_code: string;
+  clicks: number;
+  conversions: number;
+  total_earned_kes: number;
+  status: 'active' | 'paused' | 'archived';
+  products?: { title?: string | null } | null;
+};
 
 export default function Page() {
-  const { user } = useAuth();
-  const [links, setLinks] = useState<any[]>([]);
+  const { canGenerateAffiliateLinks } = usePlanAccess();
+  const [links, setLinks] = useState<LinkRow[]>([]);
+  const [status, setStatus] = useState<string | null>(null);
+  const [workingLinkId, setWorkingLinkId] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const data = await affiliateApi.links();
+      setLinks(data.items || []);
+    } catch (error: unknown) {
+      setStatus(sanitizeUserFacingError(error, 'We could not load your tracking links right now.'));
+    }
+  };
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('affiliate_links')
-      .select('id, unique_code, clicks, conversions, total_earned_kes, products(title)')
-      .eq('affiliate_id', user.id)
-      .then(({ data }) => setLinks(data || []));
-  }, [user]);
+    void load();
+  }, []);
+
+  const topActiveLink = useMemo(() => links.find((link) => link.status === 'active') || links[0], [links]);
+
+  const runAction = async (linkId: string, action: 'pause' | 'resume' | 'archive' | 'delete') => {
+    setStatus(null);
+    setWorkingLinkId(linkId);
+    try {
+      if (action === 'pause') await affiliateApi.pauseLink(linkId);
+      if (action === 'resume') await affiliateApi.resumeLink(linkId);
+      if (action === 'archive') await affiliateApi.archiveLink(linkId);
+      if (action === 'delete') {
+        const response = await affiliateApi.deleteLink(linkId);
+        setStatus(response.status === 'archived' ? 'This link had activity, so it was archived instead of permanently deleted.' : 'Link deleted.');
+      }
+      await load();
+    } catch (error: unknown) {
+      setStatus(sanitizeUserFacingError(error, 'We could not update that link right now.'));
+    } finally {
+      setWorkingLinkId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">My Tracking Links</h1>
+      <div>
+        <h1 className="text-3xl font-bold">My Tracking Links</h1>
+        <p className="mt-2 text-muted">
+          Active links can be paused or resumed. Links with clicks, conversions, or earnings are archived instead of being permanently deleted.
+        </p>
+      </div>
+
+      {status ? <div className="card-surface p-4 text-sm text-[#d4dbe7]">{status}</div> : null}
+
       <div className="card-surface p-6 mt-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-muted">
             <tr>
               <th className="py-2">Product</th>
-              <th className="py-2">Link Code</th>
+              <th className="py-2">Code</th>
               <th className="py-2">Clicks</th>
               <th className="py-2">Conv.</th>
               <th className="py-2">Earnings</th>
+              <th className="py-2">Status</th>
+              <th className="py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
             {links.map((link) => (
               <tr key={link.id} className="border-t border-soft">
-                <td className="py-3">{link.products?.title}</td>
-                <td className="py-3">{link.unique_code}</td>
+                <td className="py-3">{link.products?.title || 'Product'}</td>
+                <td className="py-3 font-mono">{link.unique_code}</td>
                 <td className="py-3">{link.clicks}</td>
                 <td className="py-3">{link.conversions}</td>
                 <td className="py-3">KES {link.total_earned_kes}</td>
+                <td className="py-3 capitalize">{link.status}</td>
+                <td className="py-3">
+                  <div className="flex flex-wrap gap-2">
+                    {link.status === 'active' ? (
+                      <button className="text-xs border border-white/20 rounded-full px-3 py-1" disabled={workingLinkId === link.id} onClick={() => runAction(link.id, 'pause')}>
+                        Pause
+                      </button>
+                    ) : null}
+                    {link.status === 'paused' ? (
+                      <button className="text-xs border border-white/20 rounded-full px-3 py-1" disabled={workingLinkId === link.id || !canGenerateAffiliateLinks} onClick={() => runAction(link.id, 'resume')}>
+                        Resume
+                      </button>
+                    ) : null}
+                    {link.status !== 'archived' ? (
+                      <button className="text-xs border border-white/20 rounded-full px-3 py-1" disabled={workingLinkId === link.id} onClick={() => runAction(link.id, 'archive')}>
+                        Archive
+                      </button>
+                    ) : null}
+                    <button className="text-xs border border-[#BB0000]/30 text-[#f5c2c2] rounded-full px-3 py-1" disabled={workingLinkId === link.id} onClick={() => runAction(link.id, 'delete')}>
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {links.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-muted">
+                <td colSpan={7} className="py-6 text-muted">
                   No links yet.
                 </td>
               </tr>
@@ -55,9 +126,9 @@ export default function Page() {
 
       <div className="card-surface p-6 mt-6">
         <h3 className="text-lg font-bold">Quick QR</h3>
-        <p className="text-muted text-sm mt-2">Share your top link instantly.</p>
+        <p className="text-muted text-sm mt-2">Share your top active link instantly. Merchants can also use the visible code for offline/manual sale attribution.</p>
         <div className="mt-4">
-          <QRCode value={`https://affilia.vercel.app/r/${links[0]?.unique_code || ''}`} />
+          <QRCode value={`https://affilia.vercel.app/r/${topActiveLink?.unique_code || ''}`} />
         </div>
       </div>
     </div>

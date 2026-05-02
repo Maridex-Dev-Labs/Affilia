@@ -17,7 +17,7 @@ class ClickPayload(BaseModel):
 
 @router.post('/click')
 def track_click(payload: ClickPayload):
-    links = select('affiliate_links', params={'unique_code': f'eq.{payload.code}', 'select': '*', 'limit': 1})
+    links = select('affiliate_links', params={'unique_code': f'eq.{payload.code}', 'status': 'eq.active', 'select': '*', 'limit': 1})
     if not links:
         return {'ok': False}
     link = links[0]
@@ -35,7 +35,7 @@ def track_click(payload: ClickPayload):
 
 @router.get('/resolve')
 def resolve(code: str):
-    links = select('affiliate_links', params={'unique_code': f'eq.{code}', 'select': '*', 'limit': 1})
+    links = select('affiliate_links', params={'unique_code': f'eq.{code}', 'status': 'eq.active', 'select': '*', 'limit': 1})
     if not links:
         return {'destination_url': settings.APP_URL}
     return {'destination_url': links[0].get('destination_url')}

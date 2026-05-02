@@ -15,9 +15,20 @@ type DepositPayload = {
   screenshot_url?: string | null;
 };
 
+type ManualSalePayload = {
+  product_id: string;
+  affiliate_code: string;
+  sale_amount_kes: number;
+  quantity: number;
+  customer_reference: string;
+  notes?: string | null;
+};
+
 export const merchantApi = {
   dashboard: async () => (await apiClient.get('/api/merchants/dashboard')).data,
   escrow: async () => (await apiClient.get('/api/merchants/escrow')).data,
   createProduct: async (payload: CreateProductPayload) => (await apiClient.post('/api/merchants/products', payload)).data,
   deposit: async (payload: DepositPayload) => (await apiClient.post('/api/merchants/deposit', payload)).data,
+  recordAffiliateSale: async (productId: string, payload: ManualSalePayload) =>
+    (await apiClient.post(`/api/merchants/products/${productId}/record-sale`, payload)).data,
 };

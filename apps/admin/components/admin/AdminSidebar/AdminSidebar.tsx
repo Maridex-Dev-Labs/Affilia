@@ -14,9 +14,11 @@ import {
   Megaphone,
   Pulse,
   QrCode,
+  Receipt,
   ShieldWarning,
   SignOut,
   Sparkle,
+  Stack,
   Users,
 } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/admin-client';
@@ -25,8 +27,10 @@ import BrandLogo from '@/components/shared/BrandLogo';
 
 const nav = [
   { label: 'Command Center', href: '/overview', icon: House, permission: 'dashboard.view' },
-  { label: 'Verify Queue', href: '/verifications', icon: ShieldWarning, permission: 'merchant.verify' },
+  { label: 'Verify Queue', href: '/verifications', icon: ShieldWarning, permissions: ['merchant.verify', 'affiliate.verify'] },
+  { label: 'Billing Approvals', href: '/billing', icon: Receipt, permission: 'billing.approve' },
   { label: 'Deposit Approvals', href: '/deposits', icon: QrCode, permission: 'deposit.approve' },
+  { label: 'Sales Review', href: '/sales-review', icon: Stack, permission: 'conversion.review' },
   { label: 'Payout Sweeps', href: '/sweeps', icon: Broadcast, permission: 'payout.manage' },
   { label: 'User Mgmt', href: '/users', icon: Users, permission: 'user.manage' },
   { label: 'Moderation', href: '/moderation', icon: Sparkle, permission: 'product.review' },
@@ -42,7 +46,12 @@ const nav = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { can } = useAdminAccess();
-  const visibleNav = nav.filter((item) => can(item.permission));
+  const visibleNav = nav.filter((item) => {
+    if ('permissions' in item && item.permissions) {
+      return item.permissions.some((permission) => can(permission));
+    }
+    return can(item.permission);
+  });
 
   return (
     <motion.aside

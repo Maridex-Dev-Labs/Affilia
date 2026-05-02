@@ -90,6 +90,19 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
   }, [profileId]);
 
   useEffect(() => {
+    if (!profileId) return;
+    const channel = supabase
+      .channel(`plan-selection:${profileId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_plan_selections', filter: `profile_id=eq.${profileId}` }, loadRecord)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${profileId}` }, loadRecord)
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [profileId]);
+
+  useEffect(() => {
     if (defaultPhone && !payerPhone) setPayerPhone(defaultPhone);
   }, [defaultPhone, payerPhone]);
 

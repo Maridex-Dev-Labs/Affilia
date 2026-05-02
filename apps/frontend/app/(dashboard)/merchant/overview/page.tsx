@@ -47,10 +47,10 @@ export default function Page() {
       try {
         const data = await loadMerchantOverview(user.id);
         setStats([
-          { label: 'Escrow Balance', value: `KES ${data.stats?.escrow_balance || 0}`, delta: 'Updated' },
+          { label: 'Escrow Balance', value: `KES ${data.stats?.escrow_balance || 0}`, delta: 'Available' },
+          { label: 'Reserved Commission', value: `KES ${data.stats?.reserved_balance || 0}`, delta: 'Awaiting review' },
           { label: 'Products', value: `${data.stats?.products || 0}`, delta: 'Active' },
           { label: 'Affiliates', value: `${data.stats?.affiliates || 0}`, delta: 'Active' },
-          { label: 'Sales', value: `KES ${data.stats?.sales_total || 0}`, delta: 'Lifetime' },
         ]);
         setTransactions(data.recent_transactions || []);
         setPendingActions(data.pending_actions || []);

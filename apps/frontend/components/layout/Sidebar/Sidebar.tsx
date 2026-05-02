@@ -6,13 +6,15 @@ import { SignOut } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import { affiliateNav, merchantNav } from '@/lib/config/navigation';
 import { useProfile } from '@/lib/hooks/useProfile';
+import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 import { supabase } from '@/lib/supabase/client';
 import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { profile } = useProfile();
-  const items = profile?.role === 'merchant' ? merchantNav : affiliateNav;
+  const { canAccessPath, isAffiliateVerified, activePlanCode } = usePlanAccess();
+  const items = (profile?.role === 'merchant' ? merchantNav : affiliateNav).filter((item) => canAccessPath(item.href));
   const accent = profile?.role === 'merchant' ? 'text-[#BB0000]' : 'text-[#009A44]';
   const rail = profile?.role === 'merchant' ? 'bg-[#BB0000]' : 'bg-[#009A44]';
 
@@ -26,7 +28,13 @@ export default function Sidebar() {
       <div className="px-4 pb-6">
         <div className="rounded-[1.6rem] border border-white/8 bg-black/35 p-5">
           <BrandLogo markClassName="h-12 w-12" textClassName="text-2xl font-black italic text-white" />
-          <p className="mt-3 text-sm text-[#8891a6]">Performance, payouts, products, and communication in one workspace.</p>
+          <p className="mt-3 text-sm text-[#8891a6]">
+            {profile?.role === 'affiliate' && !isAffiliateVerified
+              ? 'Verification is required before link generation, commissions, and payouts unlock.'
+              : !activePlanCode
+                ? 'Activate a package in Settings to unlock this workspace.'
+                : 'Performance, payouts, products, and communication in one workspace.'}
+          </p>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-1 px-3 pb-8">

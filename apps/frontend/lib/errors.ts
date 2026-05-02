@@ -47,6 +47,13 @@ const SAFE_MESSAGES = [
   /^we could not complete verification/i,
   /^failed to upload business document/i,
   /^you do not have access/i,
+  /^complete affiliate verification/i,
+  /^activate an affiliate package/i,
+  /^activate a merchant package/i,
+  /^fund your merchant escrow/i,
+  /^the affiliate tied to this code/i,
+  /^this customer or order reference/i,
+  /^your available escrow balance/i,
 ];
 
 export function isTechnicalErrorMessage(message: string) {

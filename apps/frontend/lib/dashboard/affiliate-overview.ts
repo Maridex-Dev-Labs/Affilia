@@ -29,7 +29,7 @@ export async function loadAffiliateOverview(userId: string): Promise<AffiliateOv
   todayStart.setHours(0, 0, 0, 0);
 
   const [linksResult, conversionsResult, leaderboardResult, productsResult] = await Promise.all([
-    supabase.from('affiliate_links').select('id, clicks').eq('affiliate_id', userId),
+    supabase.from('affiliate_links').select('id, clicks, status').eq('affiliate_id', userId),
     supabase.from('conversions').select('commission_earned_kes, created_at').eq('affiliate_id', userId),
     supabase.rpc('get_leaderboard', { limit_count: 200 }),
     supabase
@@ -72,7 +72,7 @@ export async function loadAffiliateOverview(userId: string): Promise<AffiliateOv
   return {
     today,
     total,
-    links: links.length,
+    links: links.filter((row) => (row as any).status !== 'archived' && (row as any).status !== 'paused').length,
     clicks,
     rank,
     leaderboardTotal: leaderboard.length,

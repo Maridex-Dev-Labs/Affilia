@@ -49,6 +49,9 @@ VALUES
   ('broadcast.manage', 'Manage broadcasts', 'Create and manage system broadcasts.'),
   ('admin.manage', 'Manage admins', 'Provision and assign admin access roles.'),
   ('legal.review', 'Review legal agreements', 'Review and approve merchant and affiliate legal agreement submissions.'),
+  ('affiliate.verify', 'Verify affiliates', 'Review affiliate verification submissions and duplicate-risk checks.'),
+  ('billing.approve', 'Approve billing plans', 'Approve paid package submissions and activate plan entitlements immediately.'),
+  ('conversion.review', 'Review attributed sales', 'Approve or reject manually submitted affiliate sale attributions.'),
   ('system.outage.view', 'View backend outage queue', 'Review backend outage events raised by admin-sensitive operations.'),
   ('system.outage.manage', 'Manage backend outage queue', 'Update outage status and close incident records.')
 ON CONFLICT (code) DO NOTHING;
@@ -67,8 +70,8 @@ FROM public.admin_roles r
 JOIN public.admin_permissions p
   ON (
     (r.code = 'super_admin')
-    OR (r.code = 'operations_admin' AND p.code IN ('dashboard.view', 'merchant.verify', 'user.manage', 'product.review', 'audit.view', 'legal.review', 'system.outage.view', 'system.outage.manage'))
-    OR (r.code = 'finance_admin' AND p.code IN ('dashboard.view', 'deposit.approve', 'payout.manage', 'audit.view'))
+    OR (r.code = 'operations_admin' AND p.code IN ('dashboard.view', 'merchant.verify', 'affiliate.verify', 'user.manage', 'product.review', 'conversion.review', 'audit.view', 'legal.review', 'system.outage.view', 'system.outage.manage'))
+    OR (r.code = 'finance_admin' AND p.code IN ('dashboard.view', 'deposit.approve', 'billing.approve', 'conversion.review', 'payout.manage', 'audit.view'))
     OR (r.code = 'community_admin' AND p.code IN ('dashboard.view', 'forum.moderate', 'academy.manage', 'broadcast.manage', 'audit.view'))
   )
 ON CONFLICT DO NOTHING;

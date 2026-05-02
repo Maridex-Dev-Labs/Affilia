@@ -19,7 +19,7 @@ async function requireUserId() {
 export async function loadEscrowFallback() {
   const userId = await requireUserId();
   const [escrowResult, depositsResult] = await Promise.all([
-    supabase.from('merchant_escrow').select('balance_kes').eq('merchant_id', userId).maybeSingle(),
+    supabase.from('merchant_escrow').select('balance_kes, reserved_balance_kes').eq('merchant_id', userId).maybeSingle(),
     supabase.from('deposit_requests').select('*').eq('merchant_id', userId).order('created_at', { ascending: false }).limit(10),
   ]);
   if (escrowResult.error || depositsResult.error) {
@@ -27,6 +27,7 @@ export async function loadEscrowFallback() {
   }
   return {
     balance: toNumber(escrowResult.data?.balance_kes),
+    reserved_balance: toNumber(escrowResult.data?.reserved_balance_kes),
     deposits: depositsResult.data || [],
   };
 }
@@ -75,6 +76,22 @@ export async function getReceiptFallback(receiptId: string) {
 
 export async function generateAffiliateLinkFallback(productId: string) {
   const userId = await requireUserId();
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('affiliate_verification_status, active_plan_code, plan_status')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('Please sign in again.');
+  }
+  if (profile.affiliate_verification_status !== 'verified') {
+    throw new Error('Complete affiliate verification before generating links.');
+  }
+  if (!profile.active_plan_code || profile.plan_status !== 'active') {
+    throw new Error('Activate an affiliate package in Settings before generating links.');
+  }
+
   const { data: product, error: productError } = await supabase
     .from('products')
     .select('id')

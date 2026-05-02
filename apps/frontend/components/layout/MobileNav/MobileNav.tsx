@@ -7,12 +7,14 @@ import { List, X } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { affiliateNav, merchantNav } from '@/lib/config/navigation';
 import { useProfile } from '@/lib/hooks/useProfile';
+import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { profile } = useProfile();
+  const { canAccessPath } = usePlanAccess();
   const [open, setOpen] = useState(false);
-  const items = profile?.role === 'merchant' ? merchantNav : affiliateNav;
+  const items = (profile?.role === 'merchant' ? merchantNav : affiliateNav).filter((item) => canAccessPath(item.href));
   const accent = profile?.role === 'merchant' ? 'text-[#BB0000]' : 'text-[#009A44]';
   const primaryItems = useMemo(() => items.slice(0, 4), [items]);
 

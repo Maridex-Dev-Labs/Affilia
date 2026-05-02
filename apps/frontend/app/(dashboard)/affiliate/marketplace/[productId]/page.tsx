@@ -7,6 +7,7 @@ import { ArrowClockwise } from '@phosphor-icons/react';
 import { affiliateApi } from '@/lib/api/affiliate';
 import { isBackendUnavailableError } from '@/lib/api/client';
 import { generateAffiliateLinkFallback } from '@/lib/api/fallbacks';
+import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 import { supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import { getPrimaryMediaUrl } from '@/lib/utils/product-media';
@@ -23,6 +24,7 @@ type ProductDetail = {
 
 export default function Page() {
   const params = useParams<{ productId: string }>();
+  const { canGenerateAffiliateLinks, isAffiliateVerified, activePlanCode } = usePlanAccess();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -40,6 +42,14 @@ export default function Page() {
   const previewUrl = useMemo(() => getPrimaryMediaUrl(product), [product]);
 
   const generateLink = async () => {
+    if (!isAffiliateVerified) {
+      setStatus('Complete affiliate verification in Settings before generating links.');
+      return;
+    }
+    if (!activePlanCode || !canGenerateAffiliateLinks) {
+      setStatus('Activate an affiliate package in Settings before generating links.');
+      return;
+    }
     try {
       const data = await affiliateApi.generateLink({ product_id: params.productId }).catch(async (err) => {
         if (isBackendUnavailableError(err)) {
@@ -74,7 +84,7 @@ export default function Page() {
           <div className="text-3xl font-black">KES {product.price_kes}</div>
           <div className="text-sm text-muted">Commission</div>
           <div className="text-xl font-bold text-[#009A44]">{product.commission_percent}%</div>
-          <Button onClick={generateLink}>Generate Link</Button>
+          <Button onClick={generateLink} disabled={!canGenerateAffiliateLinks}>Generate Link</Button>
           {status ? <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-[#cfd5e1]">{status}</div> : null}
         </div>
         <div className="card-surface p-6 text-sm text-[#cfd5e1]">

@@ -2,7 +2,7 @@ from app.db.supabase import insert, select, update
 
 
 def track_click(code: str, payload: dict) -> dict[str, object]:
-    links = select('affiliate_links', {'unique_code': f'eq.{code}', 'select': '*', 'limit': 1})
+    links = select('affiliate_links', {'unique_code': f'eq.{code}', 'status': 'eq.active', 'select': '*', 'limit': 1})
     if not links:
         return {'ok': False, 'code': code}
     link = links[0]
@@ -20,5 +20,5 @@ def track_click(code: str, payload: dict) -> dict[str, object]:
 
 
 def resolve_destination(code: str) -> str | None:
-    links = select('affiliate_links', {'unique_code': f'eq.{code}', 'select': 'destination_url', 'limit': 1})
+    links = select('affiliate_links', {'unique_code': f'eq.{code}', 'status': 'eq.active', 'select': 'destination_url', 'limit': 1})
     return links[0].get('destination_url') if links else None

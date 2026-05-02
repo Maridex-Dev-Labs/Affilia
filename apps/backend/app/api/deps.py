@@ -65,3 +65,15 @@ def require_admin_permission(user_id: str, permission_code: str):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Missing admin permission')
 
     return admin_record
+
+
+def require_any_admin_permission(user_id: str, permission_codes: list[str]):
+    last_error = None
+    for permission_code in permission_codes:
+        try:
+            return require_admin_permission(user_id, permission_code)
+        except HTTPException as exc:
+            if exc.status_code != status.HTTP_403_FORBIDDEN:
+                raise
+            last_error = exc
+    raise last_error or HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Missing admin permission')

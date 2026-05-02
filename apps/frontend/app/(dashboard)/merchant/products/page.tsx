@@ -82,6 +82,7 @@ export default function Page() {
                 </div>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link className="rounded-full border border-white/12 px-4 py-2 text-xs font-bold hover:bg-white/5" href={`/merchant/products/${product.id}`}>Edit</Link>
+                  <Link className="rounded-full border border-white/12 px-4 py-2 text-xs font-bold hover:bg-white/5" href={`/merchant/products/${product.id}`}>Record Sale</Link>
                   <Link className="rounded-full border border-white/12 px-4 py-2 text-xs font-bold hover:bg-white/5 inline-flex items-center gap-2" href="/merchant/community"><ChatsCircle size={16} /> Community</Link>
                 </div>
                 {product.moderation_notes ? (

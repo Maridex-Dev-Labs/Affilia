@@ -12,7 +12,7 @@ export default function Page() {
     if (!user) return;
     const { data } = await supabase
       .from('conversions')
-      .select('id, order_value_kes, commission_earned_kes, status, merchant_approved, created_at')
+      .select('id, order_value_kes, commission_earned_kes, status, merchant_approved, entry_mode, customer_reference, created_at')
       .eq('merchant_id', user.id)
       .order('created_at', { ascending: false });
     setOrders(data || []);
@@ -37,6 +37,7 @@ export default function Page() {
               <th className="py-2">Order</th>
               <th className="py-2">Amount</th>
               <th className="py-2">Commission</th>
+              <th className="py-2">Mode</th>
               <th className="py-2">Status</th>
               <th className="py-2">Action</th>
             </tr>
@@ -47,19 +48,22 @@ export default function Page() {
                 <td className="py-3">{o.id.slice(0, 8)}</td>
                 <td className="py-3">KES {o.order_value_kes}</td>
                 <td className="py-3">KES {o.commission_earned_kes}</td>
+                <td className="py-3 capitalize">{o.entry_mode || 'tracked'}</td>
                 <td className="py-3">{o.status}</td>
                 <td className="py-3">
-                  {!o.merchant_approved && (
+                  {!o.merchant_approved && (o.entry_mode || 'tracked') === 'tracked' ? (
                     <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => approve(o.id)}>
                       Approve
                     </button>
-                  )}
+                  ) : (o.entry_mode || 'tracked') === 'manual' ? (
+                    <span className="text-xs text-muted">Admin review</span>
+                  ) : null}
                 </td>
               </tr>
             ))}
             {orders.length === 0 && (
               <tr>
-                <td className="py-6 text-muted" colSpan={5}>
+                <td className="py-6 text-muted" colSpan={6}>
                   No orders yet.
                 </td>
               </tr>

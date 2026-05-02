@@ -14,6 +14,7 @@ type MerchantTransaction = {
 export type MerchantOverviewData = {
   stats: {
     escrow_balance: number;
+    reserved_balance: number;
     products: number;
     affiliates: number;
     sales_total: number;
@@ -29,7 +30,7 @@ function toNumber(value: unknown) {
 
 export async function loadMerchantOverview(userId: string): Promise<MerchantOverviewData> {
   const [escrowResult, productsResult, conversionsResult, depositsResult] = await Promise.all([
-    supabase.from('merchant_escrow').select('balance_kes').eq('merchant_id', userId).maybeSingle(),
+    supabase.from('merchant_escrow').select('balance_kes, reserved_balance_kes').eq('merchant_id', userId).maybeSingle(),
     supabase
       .from('products')
       .select('id, title, moderation_status, is_active')
@@ -97,6 +98,7 @@ export async function loadMerchantOverview(userId: string): Promise<MerchantOver
   return {
     stats: {
       escrow_balance: toNumber(escrowResult.data?.balance_kes),
+      reserved_balance: toNumber(escrowResult.data?.reserved_balance_kes),
       products: products.filter((item) => item.is_active).length,
       affiliates: uniqueAffiliates.size,
       sales_total: salesTotal,

@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/utils/format';
 
 type EscrowState = {
   balance_kes: number;
+  reserved_balance_kes: number;
 };
 
 type DepositRow = {
@@ -38,7 +39,7 @@ export default function Page() {
         }
         throw err;
       });
-      setEscrow({ balance_kes: data.balance || 0 });
+      setEscrow({ balance_kes: data.balance || 0, reserved_balance_kes: data.reserved_balance || 0 });
       setDeposits(data.deposits || []);
     } catch (err: unknown) {
       setError(sanitizeUserFacingError(err, 'Escrow information is temporarily unavailable.'));
@@ -66,6 +67,7 @@ export default function Page() {
       <div className="card-surface p-8 mt-6 text-center">
         <p className="text-muted">Available Escrow Vault Balance</p>
         <div className="text-4xl font-extrabold mt-2">{formatCurrency(escrow?.balance_kes || 0)}</div>
+        <p className="mt-3 text-sm text-[#9ca5b9]">Reserved for pending affiliate commissions: {formatCurrency(escrow?.reserved_balance_kes || 0)}</p>
         <div className="mt-6 flex justify-center gap-4">
           <Link className="button-primary rounded-full px-5 py-3 text-sm" href="#deposit-form">
             Deposit Funds

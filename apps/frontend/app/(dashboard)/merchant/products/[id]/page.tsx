@@ -6,6 +6,7 @@ import { ArrowClockwise, ClockCounterClockwise, FileImage, FileVideo } from '@ph
 import { supabase } from '@/lib/supabase/client';
 import Button, { SecondaryButton } from '@/components/ui/Button';
 import { sanitizeUserFacingError } from '@/lib/errors';
+import { merchantApi } from '@/lib/api/merchant';
 import { PRODUCT_MEDIA_GUIDELINES, getPrimaryMediaUrl, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
 import { uploadProductMedia } from '@/lib/supabase/storage';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -18,6 +19,15 @@ export default function Page() {
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saleForm, setSaleForm] = useState({
+    affiliate_code: '',
+    sale_amount_kes: '',
+    quantity: '1',
+    customer_reference: '',
+    notes: '',
+  });
+  const [saleStatus, setSaleStatus] = useState<string | null>(null);
+  const [submittingSale, setSubmittingSale] = useState(false);
 
   useEffect(() => {
     supabase.from('products').select('*').eq('id', params.id).single().then(({ data }) => setProduct(data));
@@ -85,6 +95,34 @@ export default function Page() {
     }
   };
 
+  const submitManualSale = async () => {
+    if (!product) return;
+    setSubmittingSale(true);
+    setSaleStatus(null);
+    try {
+      const response = await merchantApi.recordAffiliateSale(product.id, {
+        product_id: product.id,
+        affiliate_code: saleForm.affiliate_code,
+        sale_amount_kes: Number(saleForm.sale_amount_kes),
+        quantity: Number(saleForm.quantity || '1'),
+        customer_reference: saleForm.customer_reference,
+        notes: saleForm.notes || null,
+      });
+      setSaleStatus(`Sale submitted for review. KES ${response.commission_kes} has been reserved from escrow for ${response.affiliate_name}.`);
+      setSaleForm({
+        affiliate_code: '',
+        sale_amount_kes: '',
+        quantity: '1',
+        customer_reference: '',
+        notes: '',
+      });
+    } catch (err: any) {
+      setSaleStatus(sanitizeUserFacingError(err, 'We could not submit the affiliate sale right now.'));
+    } finally {
+      setSubmittingSale(false);
+    }
+  };
+
   if (!product) return <div className="text-muted">Loading...</div>;
 
   return (
@@ -148,6 +186,25 @@ export default function Page() {
                 <li key={guideline}>{guideline}</li>
               ))}
             </ul>
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#d0d6e2] space-y-4">
+            <div>
+              <div className="mb-2 font-bold text-white">Record Affiliate Sale</div>
+              <p className="text-sm text-[#9ca5b9]">
+                Use the affiliate code shared from My Links. Affilia reserves the commission from escrow immediately and sends the sale to admin review before payout.
+              </p>
+            </div>
+            <input className="input-shell" placeholder="Affiliate / Promo code" value={saleForm.affiliate_code} onChange={(e) => setSaleForm((current) => ({ ...current, affiliate_code: e.target.value.toUpperCase() }))} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input className="input-shell" placeholder="Sale amount (KES)" value={saleForm.sale_amount_kes} onChange={(e) => setSaleForm((current) => ({ ...current, sale_amount_kes: e.target.value }))} />
+              <input className="input-shell" placeholder="Quantity" value={saleForm.quantity} onChange={(e) => setSaleForm((current) => ({ ...current, quantity: e.target.value }))} />
+            </div>
+            <input className="input-shell" placeholder="Customer / Order reference" value={saleForm.customer_reference} onChange={(e) => setSaleForm((current) => ({ ...current, customer_reference: e.target.value }))} />
+            <textarea className="input-shell min-h-[110px]" placeholder="Notes for admin review (optional)" value={saleForm.notes} onChange={(e) => setSaleForm((current) => ({ ...current, notes: e.target.value }))} />
+            {saleStatus ? <div className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-sm text-[#d4dbe7]">{saleStatus}</div> : null}
+            <Button loading={submittingSale} loadingText="Submitting sale..." onClick={submitManualSale}>
+              Submit Affiliate Sale
+            </Button>
           </div>
         </div>
       </div>

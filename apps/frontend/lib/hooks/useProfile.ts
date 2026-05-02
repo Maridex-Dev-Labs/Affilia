@@ -53,8 +53,18 @@ export function useProfile() {
     setLoading(true);
     load();
 
+    const channel = user
+      ? supabase
+          .channel(`profile:${user.id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, load)
+          .subscribe()
+      : null;
+
     return () => {
       active = false;
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [user]);
 
