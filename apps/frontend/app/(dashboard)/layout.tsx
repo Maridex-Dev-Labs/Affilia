@@ -3,14 +3,15 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
+import { affiliateNav, merchantNav } from '@/lib/config/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import MobileNav from '@/components/layout/MobileNav';
 import BroadcastBanner from '@/components/layout/BroadcastBanner/BroadcastBanner';
+import WorkspaceErrorBoundary from '@/components/layout/WorkspaceErrorBoundary';
 import KenyanShieldLoader from '@/components/shared/KenyanShieldLoader';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -48,22 +49,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const showWorkspaceGate =
     Boolean(profile?.role && (profile.role === 'merchant' || profile.role === 'affiliate')) &&
     !canAccessPath(safePathname);
+  const navItems =
+    profile?.role === 'merchant'
+      ? merchantNav.filter((item) => canAccessPath(item.href))
+      : affiliateNav.filter((item) => canAccessPath(item.href));
 
   return (
     <div className="dashboard-shell min-h-screen bg-kenya-navy text-white">
       <div className="flex max-w-[1600px] mx-auto w-full">
-        <Sidebar />
+        <Sidebar
+          activePlanCode={activePlanCode}
+          isAffiliateVerified={isAffiliateVerified}
+          items={navItems}
+          pathname={safePathname}
+          profile={profile}
+        />
         <div className="flex min-h-screen flex-1 flex-col">
-          <TopBar />
+          <TopBar profile={profile} />
           <div className="px-4 md:px-8 pt-4">
-            <BroadcastBanner />
+            <BroadcastBanner profile={profile} />
           </div>
-          <motion.main
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
-            className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8"
-          >
+          <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8">
             <div className="mx-auto max-w-6xl">
               {showWorkspaceGate ? (
                 <div className="card-surface p-8">
@@ -88,11 +94,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
               ) : (
-                children
+                <WorkspaceErrorBoundary role={profile?.role}>
+                  {children}
+                </WorkspaceErrorBoundary>
               )}
             </div>
-          </motion.main>
-          <MobileNav />
+          </main>
+          <MobileNav items={navItems} pathname={safePathname} profile={profile} />
         </div>
       </div>
     </div>

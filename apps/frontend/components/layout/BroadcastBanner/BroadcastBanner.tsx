@@ -2,25 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { useProfile } from '@/lib/hooks/useProfile';
 
-export default function BroadcastBanner() {
-  const { profile } = useProfile();
+export default function BroadcastBanner({ profile }: { profile: any }) {
   const [broadcast, setBroadcast] = useState<any>(null);
 
   useEffect(() => {
     const load = async () => {
-      if (!profile) return;
-      const audience = profile.role || 'all';
-      const { data } = await supabase
-        .from('broadcasts')
-        .select('*')
-        .or(`audience.eq.all,audience.eq.${audience}`)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      setBroadcast(data?.[0] || null);
+      if (!profile) {
+        setBroadcast(null);
+        return;
+      }
+
+      try {
+        const audience = profile.role || 'all';
+        const { data, error } = await supabase
+          .from('broadcasts')
+          .select('*')
+          .or(`audience.eq.all,audience.eq.${audience}`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) {
+          setBroadcast(null);
+          return;
+        }
+
+        setBroadcast(data?.[0] || null);
+      } catch {
+        setBroadcast(null);
+      }
     };
-    load();
+    void load();
   }, [profile]);
 
   if (!broadcast) return null;

@@ -1,31 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { SignOut } from '@phosphor-icons/react';
-import { motion } from 'framer-motion';
-import { affiliateNav, merchantNav } from '@/lib/config/navigation';
-import { useProfile } from '@/lib/hooks/useProfile';
-import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
+import type { NavItem } from '@/lib/config/navigation';
 import { supabase } from '@/lib/supabase/client';
 import BrandLogo from '@/components/shared/BrandLogo';
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const safePathname = pathname ?? '';
-  const { profile } = useProfile();
-  const { canAccessPath, isAffiliateVerified, activePlanCode } = usePlanAccess();
-  const items = (profile?.role === 'merchant' ? merchantNav : affiliateNav).filter((item) => canAccessPath(item.href));
-  const accent = profile?.role === 'merchant' ? 'text-[#BB0000]' : 'text-[#009A44]';
+type SidebarProps = {
+  activePlanCode: string | null | undefined;
+  isAffiliateVerified: boolean;
+  items: NavItem[];
+  pathname: string;
+  profile: any;
+};
+
+export default function Sidebar({ activePlanCode, isAffiliateVerified, items, pathname, profile }: SidebarProps) {
   const rail = profile?.role === 'merchant' ? 'bg-[#BB0000]' : 'bg-[#009A44]';
 
   return (
-    <motion.aside
-      initial={{ opacity: 0, x: -18 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="custom-scrollbar hidden h-[calc(100vh-95px)] w-[288px] shrink-0 overflow-y-auto border-r border-white/8 bg-[linear-gradient(180deg,rgba(20,26,43,0.94),rgba(10,14,23,0.98))] pt-6 lg:sticky lg:top-[95px] lg:flex lg:flex-col"
-    >
+    <aside className="custom-scrollbar hidden h-[calc(100vh-95px)] w-[288px] shrink-0 overflow-y-auto border-r border-white/8 bg-[linear-gradient(180deg,rgba(20,26,43,0.94),rgba(10,14,23,0.98))] pt-6 lg:sticky lg:top-[95px] lg:flex lg:flex-col">
       <div className="px-4 pb-6">
         <div className="rounded-[1.6rem] border border-white/8 bg-black/35 p-5">
           <BrandLogo markClassName="h-12 w-12" textClassName="text-2xl font-black italic text-white" />
@@ -41,9 +34,8 @@ export default function Sidebar() {
       <div className="flex flex-1 flex-col gap-1 px-3 pb-8">
         {items.map((item) => {
           const Icon = item.icon;
-          const active = safePathname === item.href;
+          const active = pathname === item.href;
           return (
-            <motion.div key={item.href} whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }}>
             <Link
               key={item.href}
               href={item.href}
@@ -55,11 +47,9 @@ export default function Sidebar() {
               <Icon size={20} color={active ? (profile?.role === 'merchant' ? '#BB0000' : '#009A44') : undefined} weight={active ? 'fill' : 'regular'} />
               <span>{item.label}</span>
             </Link>
-            </motion.div>
           );
         })}
-        <motion.button
-          whileHover={{ x: 4 }}
+        <button
           onClick={async () => {
             await supabase.auth.signOut();
             window.location.href = '/login';
@@ -68,8 +58,8 @@ export default function Sidebar() {
         >
           <SignOut size={20} color="#BB0000" />
           <span>Logout</span>
-        </motion.button>
+        </button>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

@@ -1,13 +1,10 @@
 'use client';
 
 import { Bell, SignOut, UserCircle } from '@phosphor-icons/react';
-import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
-import { useProfile } from '@/lib/hooks/useProfile';
 import BrandLogo, { BrandMark } from '@/components/shared/BrandLogo';
 
-export default function TopBar() {
-  const { profile } = useProfile();
+export default function TopBar({ profile }: { profile: any }) {
   const isMerchant = profile?.role === 'merchant';
   const accent = isMerchant ? 'text-[#BB0000]' : 'text-[#009A44]';
   const mode = isMerchant ? 'Merchant' : 'Affiliate';
@@ -18,12 +15,7 @@ export default function TopBar() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="border-b border-white/8 bg-[#0A0E17]/88 px-4 py-4 backdrop-blur-xl md:px-8"
-    >
+    <div className="border-b border-white/8 bg-[#0A0E17]/88 px-4 py-4 backdrop-blur-xl md:px-8">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <BrandMark className="hidden h-12 w-12 md:block" />
@@ -49,6 +41,6 @@ export default function TopBar() {
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
