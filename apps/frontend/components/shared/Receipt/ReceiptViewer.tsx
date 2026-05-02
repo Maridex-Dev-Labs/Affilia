@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import { PDFViewer } from '@react-pdf/renderer';

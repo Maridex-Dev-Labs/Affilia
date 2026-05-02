@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonHTMLAttributes, useState } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils/helpers';
@@ -63,7 +64,7 @@ export default function Button({
           aria-disabled={isBusy}
           className={classes}
           href={href}
-          onClick={(event) => {
+          onClick={(event: MouseEvent<HTMLAnchorElement>) => {
             if (isBusy) {
               event.preventDefault();
               return;

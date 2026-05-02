@@ -255,7 +255,7 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
               <div className="mt-4 space-y-2 text-sm text-white/80">
                 {plan.highlights.map((item) => (
                   <div key={item} className="flex items-center gap-2">
-                    <CheckCircle size={14} className={role === 'merchant' ? 'text-[#BB0000]' : 'text-[#009A44]'} weight="fill" />
+                    <CheckCircle size={14} color={role === 'merchant' ? '#BB0000' : '#009A44'} weight="fill" />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -272,7 +272,7 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
           <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
-                <Wallet size={22} className={role === 'merchant' ? 'text-[#BB0000]' : 'text-[#009A44]'} weight="duotone" />
+                <Wallet size={22} color={role === 'merchant' ? '#BB0000' : '#009A44'} weight="duotone" />
               </div>
               <div>
                 <div className="text-sm font-bold text-white">Payment Channel</div>
@@ -298,7 +298,7 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
           <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
-                <CreditCard size={22} className={role === 'merchant' ? 'text-[#BB0000]' : 'text-[#009A44]'} weight="duotone" />
+                <CreditCard size={22} color={role === 'merchant' ? '#BB0000' : '#009A44'} weight="duotone" />
               </div>
               <div>
                 <div className="text-sm font-bold text-white">Selected Package</div>

@@ -87,7 +87,7 @@ export default function Page() {
                 </div>
                 {product.moderation_notes ? (
                   <div className="mt-4 rounded-2xl border border-[#BB0000]/15 bg-[#BB0000]/8 p-3 text-xs text-[#f0c5c5] inline-flex items-start gap-2">
-                    <ClockCounterClockwise size={16} className="mt-0.5" /> {product.moderation_notes}
+                    <ClockCounterClockwise size={16} color="#f0c5c5" /> {product.moderation_notes}
                   </div>
                 ) : null}
               </div>

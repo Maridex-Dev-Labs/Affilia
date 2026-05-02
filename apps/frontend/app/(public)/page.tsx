@@ -137,21 +137,21 @@ export default function LandingPage() {
                 <h3 className="mb-6 text-2xl font-black italic text-white">Why Choose Affilia?</h3>
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#009A44]/18"><Wallet size={24} className="text-[#009A44]" /></div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#009A44]/18"><Wallet size={24} color="#009A44" /></div>
                     <div>
                       <h4 className="font-bold text-white">Zero-Day Payouts</h4>
                       <p className="text-sm text-[#9ca5b9]">M-Pesa payments within 24 hours for verified earnings.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#BB0000]/18"><ShieldCheck size={24} className="text-[#BB0000]" /></div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#BB0000]/18"><ShieldCheck size={24} color="#BB0000" /></div>
                     <div>
                       <h4 className="font-bold text-white">Secure Escrow</h4>
                       <p className="text-sm text-[#9ca5b9]">Merchant balances are ring-fenced until sales are confirmed.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10"><ChartLineUp size={24} className="text-white" /></div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10"><ChartLineUp size={24} color="#ffffff" /></div>
                     <div>
                       <h4 className="font-bold text-white">Real-Time Tracking</h4>
                       <p className="text-sm text-[#9ca5b9]">See live clicks, commissions, traffic source quality, and conversion velocity.</p>
@@ -186,7 +186,7 @@ export default function LandingPage() {
               return (
                 <SectionCard key={feature.title} delay={index * 0.08}>
                   <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-[#1d2438] to-black">
-                    <Icon size={28} className="text-white" />
+                    <Icon size={28} color="#ffffff" />
                   </div>
                   <h3 className="mb-2 text-xl font-bold text-white">{feature.title}</h3>
                   <p className="text-sm text-[#9ca5b9]">{feature.description}</p>

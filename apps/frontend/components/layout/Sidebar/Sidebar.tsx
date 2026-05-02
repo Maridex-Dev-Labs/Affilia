@@ -52,7 +52,7 @@ export default function Sidebar() {
               }`}
             >
               {active ? <span className={`absolute inset-y-0 left-0 w-1 rounded-r-md ${rail}`} /> : null}
-              <Icon size={20} className={`ml-1 ${active ? accent : ''}`} weight={active ? 'fill' : 'regular'} />
+              <Icon size={20} color={active ? (profile?.role === 'merchant' ? '#BB0000' : '#009A44') : undefined} weight={active ? 'fill' : 'regular'} />
               <span>{item.label}</span>
             </Link>
             </motion.div>
@@ -66,7 +66,7 @@ export default function Sidebar() {
           }}
           className="group mt-auto flex items-center gap-4 rounded-xl p-3 text-sm font-bold text-[#8f98ab] transition-colors hover:bg-[#BB0000]/10 hover:text-white"
         >
-          <SignOut size={20} className="ml-1 group-hover:text-[#BB0000]" />
+          <SignOut size={20} color="#BB0000" />
           <span>Logout</span>
         </motion.button>
       </div>

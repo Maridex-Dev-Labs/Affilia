@@ -36,7 +36,7 @@ export default function MobileNav() {
             <div className="mb-3 flex items-center justify-between">
               <div className="text-xs font-bold uppercase tracking-[0.28em] text-[#7e869a]">All Sections</div>
               <button className="rounded-full border border-white/10 p-2 text-white" onClick={() => setOpen(false)}>
-                <X size={18} />
+              <X size={18} />
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -50,7 +50,9 @@ export default function MobileNav() {
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${active ? 'border-white/20 bg-black/40 text-white' : 'border-white/8 bg-black/20 text-[#9aa2b5]'}`}
                   >
-                    <Icon size={18} weight={active ? 'fill' : 'regular'} className={active ? accent : ''} />
+                    <span className={active ? 'scale-110' : ''}>
+                      <Icon size={18} weight={active ? 'fill' : 'regular'} color={active ? (profile?.role === 'merchant' ? '#BB0000' : '#009A44') : undefined} />
+                    </span>
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -65,13 +67,17 @@ export default function MobileNav() {
           const active = safePathname === item.href;
           return (
             <Link key={item.href} href={item.href} className={`flex min-w-[64px] flex-col items-center p-2 ${active ? accent : 'text-[#6d7587]'}`}>
-              <Icon size={24} weight={active ? 'fill' : 'regular'} className={active ? 'scale-110' : ''} />
+              <span className={active ? 'scale-110' : ''}>
+                <Icon size={24} weight={active ? 'fill' : 'regular'} />
+              </span>
               <span className="mt-1 text-[10px] font-bold">{item.shortLabel || item.label}</span>
             </Link>
           );
         })}
         <button type="button" onClick={() => setOpen(true)} className={`flex min-w-[64px] flex-col items-center p-2 ${open ? accent : 'text-[#6d7587]'}`}>
-          <List size={24} weight={open ? 'fill' : 'regular'} className={open ? 'scale-110' : ''} />
+          <span className={open ? 'scale-110' : ''}>
+            <List size={24} weight={open ? 'fill' : 'regular'} />
+          </span>
           <span className="mt-1 text-[10px] font-bold">More</span>
         </button>
       </nav>

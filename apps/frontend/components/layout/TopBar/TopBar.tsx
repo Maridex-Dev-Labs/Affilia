@@ -41,7 +41,7 @@ export default function TopBar() {
             <Bell size={20} weight="duotone" />
           </button>
           <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-[#141A2B] px-4 py-2 text-sm md:flex">
-            <UserCircle size={20} className={accent} weight="duotone" />
+            <UserCircle size={20} color={isMerchant ? '#BB0000' : '#009A44'} weight="duotone" />
             <span className="font-bold text-white">{profile?.full_name || 'Affilia User'}</span>
           </div>
           <button onClick={signOut} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/8 bg-[#141A2B] text-white transition hover:border-[#BB0000]/50 hover:bg-[#BB0000]/10">

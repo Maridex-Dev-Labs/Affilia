@@ -141,7 +141,7 @@ export default function Page() {
 
         <div className="card-surface p-6">
           <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.24em] text-[#7e869a]">
-            <ShieldCheck size={18} className="text-[#009A44]" /> Review rules
+            <ShieldCheck size={18} color="#009A44" /> Review rules
           </div>
           <div className="mt-5 space-y-3">
             {PRODUCT_MEDIA_GUIDELINES.map((guideline) => (
