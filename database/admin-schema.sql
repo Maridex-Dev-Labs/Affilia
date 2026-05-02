@@ -121,6 +121,25 @@ GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.current_admin_record() TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_admin_ip_allowed(uuid, inet) TO authenticated, service_role;
 
+CREATE OR REPLACE FUNCTION public.current_session_meets_admin_aal()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT CASE
+    WHEN EXISTS (
+      SELECT 1
+      FROM public.admin_users au
+      WHERE au.user_id = auth.uid()
+        AND au.status = 'active'
+        AND au.requires_totp = TRUE
+    ) THEN COALESCE((SELECT auth.jwt()->>'aal'), 'aal1') = 'aal2'
+    ELSE TRUE
+  END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.current_session_meets_admin_aal() TO authenticated, service_role;
+
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_ip_whitelist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_access_log ENABLE ROW LEVEL SECURITY;
@@ -172,6 +191,24 @@ WITH CHECK (
 GRANT SELECT, INSERT, UPDATE ON public.admin_users TO authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_ip_whitelist TO authenticated, service_role;
 GRANT SELECT, INSERT ON public.admin_access_log TO authenticated, service_role;
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_ip_whitelist;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_ip_whitelist
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_access_log;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_access_log
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
 
 -- Manual admin bootstrap example:
 -- 1. Create the admin in Supabase Auth dashboard.

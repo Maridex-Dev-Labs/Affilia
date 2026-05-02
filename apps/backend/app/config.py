@@ -35,6 +35,8 @@ class Settings(BaseModel):
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    MPESA_WEBHOOK_SECRET: str = os.getenv("MPESA_WEBHOOK_SECRET", "")
+    INTERNAL_WEBHOOK_SECRET: str = os.getenv("INTERNAL_WEBHOOK_SECRET", "")
     APP_URL: str = os.getenv("APP_URL", "http://localhost:6100")
     ADMIN_URL: str = os.getenv("ADMIN_URL", "http://localhost:6200")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")

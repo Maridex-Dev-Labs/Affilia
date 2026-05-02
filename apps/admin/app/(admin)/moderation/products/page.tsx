@@ -92,7 +92,7 @@ export default function Page() {
                     <XCircle size={16} /> Reject
                   </button>
                 </div>
-                {product.moderation_notes ? <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-[#cfd5e1] inline-flex gap-2"><ClockCounterClockwise size={16} className="mt-0.5" /> {product.moderation_notes}</div> : null}
+                {product.moderation_notes ? <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-[#cfd5e1] inline-flex gap-2"><span className="mt-0.5"><ClockCounterClockwise size={16} /></span> {product.moderation_notes}</div> : null}
               </div>
             </div>
           </div>

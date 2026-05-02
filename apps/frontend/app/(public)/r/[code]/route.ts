@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordClickViaSupabase, resolveLinkViaSupabase } from '@/lib/server/tracking-fallback';
 
+function getSafeRedirectTarget(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const { code } = await params;
@@ -16,8 +29,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const res = await fetch(`${apiUrl}/api/track/resolve?code=${code}`);
       if (res.ok) {
         const data = await res.json();
-        if (data?.destination_url) {
-          return NextResponse.redirect(data.destination_url, { status: 302 });
+        const redirectTarget = getSafeRedirectTarget(data?.destination_url);
+        if (redirectTarget) {
+          return NextResponse.redirect(redirectTarget, { status: 302 });
         }
       }
     } catch (err) {
@@ -27,9 +41,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const link = await resolveLinkViaSupabase(code);
-    if (link?.destination_url) {
+    const redirectTarget = getSafeRedirectTarget(link?.destination_url);
+    if (link && redirectTarget) {
       await recordClickViaSupabase(link.id, request, request.nextUrl.searchParams);
-      return NextResponse.redirect(link.destination_url, { status: 302 });
+      return NextResponse.redirect(redirectTarget, { status: 302 });
     }
   } catch (_error) {
     // silent

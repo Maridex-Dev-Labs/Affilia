@@ -1,7 +1,20 @@
+import base64
+import json
+
 from fastapi import Header, HTTPException, status
 
 from app.core.exceptions import UpstreamServiceError
 from app.db.supabase import get_user_from_token, select
+
+
+def _decode_jwt_claims(token: str) -> dict:
+    try:
+        payload = token.split('.')[1]
+        payload += '=' * (-len(payload) % 4)
+        return json.loads(base64.urlsafe_b64decode(payload.encode()).decode())
+    except Exception:
+        return {}
+
 
 def get_current_user(authorization: str | None = Header(None)):
     if not authorization or not authorization.startswith('Bearer '):
@@ -9,6 +22,7 @@ def get_current_user(authorization: str | None = Header(None)):
     token = authorization.split('Bearer ')[1]
     try:
         user = get_user_from_token(token)
+        user['_jwt_claims'] = _decode_jwt_claims(token)
         return user
     except UpstreamServiceError:
         raise
@@ -39,8 +53,12 @@ def require_role(user_id: str, role: str):
     return profile
 
 
-def require_admin_permission(user_id: str, permission_code: str):
+def require_admin_permission(user_or_id: dict | str, permission_code: str):
+    user_id = user_or_id['id'] if isinstance(user_or_id, dict) else user_or_id
+    jwt_claims = user_or_id.get('_jwt_claims', {}) if isinstance(user_or_id, dict) else {}
     admin_record = require_role(user_id, 'admin')
+    if admin_record.get('requires_totp') and jwt_claims.get('aal') != 'aal2':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Two-factor authentication required')
     if admin_record.get('is_super_admin'):
         return admin_record
 
@@ -67,11 +85,11 @@ def require_admin_permission(user_id: str, permission_code: str):
     return admin_record
 
 
-def require_any_admin_permission(user_id: str, permission_codes: list[str]):
+def require_any_admin_permission(user_or_id: dict | str, permission_codes: list[str]):
     last_error = None
     for permission_code in permission_codes:
         try:
-            return require_admin_permission(user_id, permission_code)
+            return require_admin_permission(user_or_id, permission_code)
         except HTTPException as exc:
             if exc.status_code != status.HTTP_403_FORBIDDEN:
                 raise

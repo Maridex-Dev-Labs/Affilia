@@ -28,7 +28,9 @@ export default function AdminHeader() {
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden items-center gap-2 rounded-full border border-[#BB0000]/20 bg-black px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white/70 md:flex">
-            <ShieldCheck size={18} className="text-[#BB0000]" weight="duotone" />
+            <span className="text-[#BB0000]">
+              <ShieldCheck size={18} weight="duotone" />
+            </span>
             Production Access
           </div>
           <button className="flex h-11 w-11 items-center justify-center rounded-full border border-white/8 bg-[#141A2B] text-white transition hover:border-white/20 hover:bg-white/5">

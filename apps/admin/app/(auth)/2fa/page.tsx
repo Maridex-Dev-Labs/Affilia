@@ -46,8 +46,13 @@ export default function Page() {
         return;
       }
 
+      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (assurance?.currentLevel === 'aal2') {
+        router.replace('/overview');
+        return;
+      }
+
       if (!adminRecord.requires_totp) {
-        document.cookie = 'affilia_admin_2fa=; Max-Age=0; path=/';
         router.replace('/overview');
         return;
       }
@@ -82,7 +87,6 @@ export default function Page() {
       setIsVerifying(false);
       return;
     }
-    document.cookie = 'affilia_admin_2fa=1; path=/';
     router.push('/overview');
   };
 

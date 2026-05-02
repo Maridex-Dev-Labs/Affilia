@@ -78,7 +78,9 @@ export default function AdminSidebar() {
                 className={`relative flex items-center gap-4 rounded-xl p-3 text-sm font-bold transition-colors ${active ? 'bg-black/50 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]' : 'text-[#8f98ab] hover:bg-white/5 hover:text-white'}`}
               >
                 {active ? <span className="absolute inset-y-0 left-0 w-1 rounded-r-md bg-[#BB0000]" /> : null}
-                <Icon size={20} className={`ml-1 ${active ? 'text-[#BB0000]' : ''}`} weight={active ? 'fill' : 'regular'} />
+                <span className={`ml-1 ${active ? 'text-[#BB0000]' : ''}`}>
+                  <Icon size={20} weight={active ? 'fill' : 'regular'} />
+                </span>
                 <span>{item.label}</span>
               </Link>
             </motion.div>
@@ -92,7 +94,9 @@ export default function AdminSidebar() {
           }}
           className="group mt-auto flex items-center gap-4 rounded-xl p-3 text-sm font-bold text-[#8f98ab] transition-colors hover:bg-[#BB0000]/10 hover:text-white"
         >
-          <SignOut size={20} className="ml-1 group-hover:text-[#BB0000]" />
+          <span className="ml-1 group-hover:text-[#BB0000]">
+            <SignOut size={20} />
+          </span>
           <span>Logout</span>
         </motion.button>
       </nav>

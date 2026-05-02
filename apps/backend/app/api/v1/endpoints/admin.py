@@ -18,7 +18,7 @@ router = APIRouter()
 
 @router.get('/verification-queue')
 def verification_queue(user=Depends(get_current_user)):
-    require_any_admin_permission(user['id'], ['merchant.verify', 'affiliate.verify'])
+    require_any_admin_permission(user, ['merchant.verify', 'affiliate.verify'])
     merchant_items = select('profiles', params={'business_verified': 'eq.false', 'role': 'eq.merchant', 'select': '*'})
     affiliate_items = select(
         'profiles',
@@ -33,14 +33,14 @@ def verification_queue(user=Depends(get_current_user)):
 
 @router.post('/verify-merchant/{merchant_id}')
 def verify_merchant(merchant_id: str, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'merchant.verify')
+    require_admin_permission(user, 'merchant.verify')
     update('profiles', {'business_verified': True}, params={'id': f'eq.{merchant_id}'})
     return {'status': 'approved', 'merchant_id': merchant_id}
 
 
 @router.post('/verify-affiliate/{affiliate_id}')
 def verify_affiliate(affiliate_id: str, payload: ReviewPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'affiliate.verify')
+    require_admin_permission(user, 'affiliate.verify')
     rows = update(
         'profiles',
         {
@@ -59,7 +59,7 @@ def verify_affiliate(affiliate_id: str, payload: ReviewPayload, user=Depends(get
 
 @router.post('/verify-affiliate/{affiliate_id}/reject')
 def reject_affiliate_verification(affiliate_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'affiliate.verify')
+    require_admin_permission(user, 'affiliate.verify')
     rows = update(
         'profiles',
         {
@@ -74,7 +74,7 @@ def reject_affiliate_verification(affiliate_id: str, payload: RejectionPayload, 
 
 @router.get('/deposits/pending')
 def pending_deposits(user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'deposit.approve')
+    require_admin_permission(user, 'deposit.approve')
     items = select(
         'deposit_requests',
         params={
@@ -88,7 +88,7 @@ def pending_deposits(user=Depends(get_current_user)):
 
 @router.get('/billing/pending')
 def pending_billing(user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'billing.approve')
+    require_admin_permission(user, 'billing.approve')
     items = select(
         'profile_plan_selections',
         params={
@@ -102,7 +102,7 @@ def pending_billing(user=Depends(get_current_user)):
 
 @router.post('/billing/{profile_id}/approve')
 def approve_billing(profile_id: str, payload: ReviewPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'billing.approve')
+    require_admin_permission(user, 'billing.approve')
     plan = activate_profile_plan(profile_id, approver_id=user['id'], notes=payload.notes)
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Pending billing record not found')
@@ -111,7 +111,7 @@ def approve_billing(profile_id: str, payload: ReviewPayload, user=Depends(get_cu
 
 @router.post('/billing/{profile_id}/reject')
 def reject_billing(profile_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'billing.approve')
+    require_admin_permission(user, 'billing.approve')
     plan = reject_profile_plan(profile_id, approver_id=user['id'], notes=payload.reason)
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Pending billing record not found')
@@ -119,7 +119,7 @@ def reject_billing(profile_id: str, payload: RejectionPayload, user=Depends(get_
 
 @router.post('/deposits/{deposit_id}/approve')
 def approve_deposit(deposit_id: str, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'deposit.approve')
+    require_admin_permission(user, 'deposit.approve')
     deposits = select('deposit_requests', params={'id': f'eq.{deposit_id}', 'select': '*', 'limit': 1})
     if not deposits:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Deposit request not found')
@@ -156,7 +156,7 @@ def approve_deposit(deposit_id: str, user=Depends(get_current_user)):
 
 @router.get('/sweep/preview')
 def sweep_preview(user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'payout.manage')
+    require_admin_permission(user, 'payout.manage')
     payouts = select(
         'payouts',
         params={
@@ -171,7 +171,7 @@ def sweep_preview(user=Depends(get_current_user)):
 
 @router.get('/sales-review/pending')
 def pending_sales_review(user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'conversion.review')
+    require_admin_permission(user, 'conversion.review')
     rows = select(
         'conversions',
         params={
@@ -212,20 +212,20 @@ def pending_sales_review(user=Depends(get_current_user)):
 
 @router.post('/sales-review/{conversion_id}/approve')
 def approve_sales_review(conversion_id: str, payload: ReviewPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'conversion.review')
+    require_admin_permission(user, 'conversion.review')
     conversion = approve_conversion(conversion_id, approver_id=user['id'])
     return {'status': 'approved', 'conversion': conversion, 'notes': payload.notes}
 
 
 @router.post('/sales-review/{conversion_id}/reject')
 def reject_sales_review(conversion_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'conversion.review')
+    require_admin_permission(user, 'conversion.review')
     conversion = reject_conversion(conversion_id, approver_id=user['id'], reason=payload.reason)
     return {'status': 'rejected', 'conversion': conversion}
 
 @router.post('/sweep/confirm')
 def sweep_confirm(user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'payout.manage')
+    require_admin_permission(user, 'payout.manage')
     payouts = select('payouts', params={'status': 'eq.pending', 'select': '*'})
     total = sum(float(p.get('amount_kes') or 0) for p in payouts)
     recipients = len(payouts)

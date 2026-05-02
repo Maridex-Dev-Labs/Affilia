@@ -35,7 +35,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       if (error || !data) {
         await supabase.auth.signOut();
-        document.cookie = 'affilia_admin_2fa=; Max-Age=0; path=/';
         router.replace('/login');
         return;
       }
@@ -45,8 +44,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const has2fa = document.cookie.includes('affilia_admin_2fa=1');
-      if (data.requires_totp && !has2fa) {
+      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const hasVerifiedSecondFactor = assurance?.currentLevel === 'aal2';
+
+      if (data.requires_totp && !hasVerifiedSecondFactor) {
         router.replace('/2fa');
         return;
       }

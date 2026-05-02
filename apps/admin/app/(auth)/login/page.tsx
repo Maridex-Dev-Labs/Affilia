@@ -8,7 +8,7 @@ import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function Page() {
   const router = useRouter();
-  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_ADMIN_ACCESS_EMAIL ?? '');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

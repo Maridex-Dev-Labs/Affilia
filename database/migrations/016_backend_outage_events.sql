@@ -69,4 +69,13 @@ WITH CHECK (public.admin_has_permission(auth.uid(), 'system.outage.manage'));
 
 GRANT SELECT, INSERT, UPDATE ON public.backend_outage_events TO authenticated, service_role;
 
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.backend_outage_events;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.backend_outage_events
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
 COMMIT;

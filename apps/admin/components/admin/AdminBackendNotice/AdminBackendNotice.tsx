@@ -46,7 +46,9 @@ export default function AdminBackendNotice() {
   return (
     <div className="mb-6 flex items-start justify-between gap-4 rounded-[1.4rem] border border-[#BB0000]/30 bg-[#BB0000]/10 px-5 py-4 text-sm text-white/85">
       <div className="flex items-start gap-3">
-        <WarningCircle size={20} className="mt-0.5 shrink-0 text-[#ff8d8d]" weight="fill" />
+        <span className="mt-0.5 shrink-0 text-[#ff8d8d]">
+          <WarningCircle size={20} weight="fill" />
+        </span>
         <div>
           <div className="font-bold text-white">Backend service degraded</div>
           <div className="mt-1">{outage.message}</div>

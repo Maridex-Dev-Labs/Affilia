@@ -310,10 +310,57 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_leaderboard(integer) TO authenticated, service_role;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO authenticated, service_role;
+CREATE OR REPLACE FUNCTION public.current_session_meets_admin_aal()
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  requires_totp boolean := FALSE;
+BEGIN
+  IF to_regclass('public.admin_users') IS NULL THEN
+    RETURN TRUE;
+  END IF;
+
+  EXECUTE $sql$
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.admin_users au
+      WHERE au.user_id = auth.uid()
+        AND au.status = 'active'
+        AND au.requires_totp = TRUE
+    )
+  $sql$
+  INTO requires_totp;
+
+  IF NOT requires_totp THEN
+    RETURN TRUE;
+  END IF;
+
+  RETURN COALESCE((SELECT auth.jwt()->>'aal'), 'aal1') = 'aal2';
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.current_session_meets_admin_aal() TO authenticated, service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
+GRANT SELECT ON public.merchant_escrow TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.products TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.affiliate_links TO authenticated;
+GRANT SELECT, INSERT ON public.click_events TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.conversions TO authenticated;
+GRANT SELECT ON public.achievements TO authenticated;
+GRANT SELECT ON public.user_achievements TO authenticated;
+GRANT SELECT ON public.official_receipts TO authenticated;
+GRANT SELECT, INSERT ON public.deposit_requests TO authenticated;
+GRANT SELECT ON public.payouts TO authenticated;
+GRANT SELECT, INSERT ON public.forum_posts TO authenticated;
+GRANT SELECT ON public.broadcasts TO authenticated;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.merchant_escrow ENABLE ROW LEVEL SECURITY;
@@ -655,6 +702,132 @@ USING (
     OR audience = COALESCE((SELECT p.role FROM public.profiles p WHERE p.id = auth.uid()), '')
   )
 );
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.merchant_escrow;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.merchant_escrow
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.products;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.products
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.affiliate_links;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.affiliate_links
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.click_events;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.click_events
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.conversions;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.conversions
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.achievements;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.achievements
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.user_achievements;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.user_achievements
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_audit_log;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_audit_log
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.official_receipts;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.official_receipts
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.deposit_requests;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.deposit_requests
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.payouts;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.payouts
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.sweep_batches;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.sweep_batches
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.forum_posts;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.forum_posts
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.broadcasts;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.broadcasts
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
 
 INSERT INTO storage.buckets (id, name, public)
 VALUES

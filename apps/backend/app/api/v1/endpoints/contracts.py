@@ -191,7 +191,7 @@ def submit_contract(payload: SubmitAgreementPayload, request: Request, user=Depe
 
 @router.get('/admin/review-queue')
 def review_queue(user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'legal.review')
+    require_admin_permission(user, 'legal.review')
     items = select(
         'legal_agreements',
         params={
@@ -205,7 +205,7 @@ def review_queue(user=Depends(get_current_user)):
 
 @router.post('/admin/{agreement_id}/review')
 def review_contract(agreement_id: str, payload: ReviewAgreementPayload, user=Depends(get_current_user)):
-    require_admin_permission(user['id'], 'legal.review')
+    require_admin_permission(user, 'legal.review')
     agreements = select('legal_agreements', params={'id': f'eq.{agreement_id}', 'select': '*', 'limit': 1})
     if not agreements:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Legal agreement not found.')

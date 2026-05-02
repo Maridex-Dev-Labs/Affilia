@@ -136,4 +136,40 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_permissions TO authenticate
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_role_permissions TO authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_user_roles TO authenticated, service_role;
 
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_roles;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_roles
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_permissions;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_permissions
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_role_permissions;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_role_permissions
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
+DROP POLICY IF EXISTS mfa_required_for_admin_sessions ON public.admin_user_roles;
+CREATE POLICY mfa_required_for_admin_sessions
+ON public.admin_user_roles
+AS RESTRICTIVE
+FOR ALL
+TO authenticated
+USING (public.current_session_meets_admin_aal())
+WITH CHECK (public.current_session_meets_admin_aal());
+
 COMMIT;
