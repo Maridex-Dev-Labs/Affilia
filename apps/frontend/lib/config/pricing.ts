@@ -96,7 +96,7 @@ export const paymentChannels = [
   {
     code: 'mpesa_p2p',
     name: 'M-Pesa P2P / Pochi La Biashara',
-    destination: '884422',
+    destination: '0742972001',
     helpText: 'Send the package fee to the Affilia P2P number, then paste the M-Pesa confirmation code below for review.',
   },
 ] as const;
