@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { apiClient, isBackendUnavailableError } from './client';
 import type { AgreementType } from '@/lib/legal/contracts';
+import { generateAgreementPdfFallback, loadCurrentAgreementClientFallback, submitAgreementClientFallback } from '@/lib/legal/contracts-client-fallback';
 
 export type SubmitAgreementPayload = {
   agreement_type: AgreementType;
@@ -49,8 +50,12 @@ export const contractApi = {
       if (!isBackendUnavailableError(error)) {
         console.warn('Falling back to internal agreement status loader after API error.', error);
       }
-      const params = agreementType ? `?agreement_type=${agreementType}` : '';
-      return (await callInternal(`/api/internal/contracts/current${params}`)).json();
+      try {
+        const params = agreementType ? `?agreement_type=${agreementType}` : '';
+        return (await callInternal(`/api/internal/contracts/current${params}`)).json();
+      } catch {
+        return await loadCurrentAgreementClientFallback(agreementType);
+      }
     }
   },
   submit: async (payload: SubmitAgreementPayload) => {
@@ -60,7 +65,11 @@ export const contractApi = {
       if (!isBackendUnavailableError(error)) {
         console.warn('Falling back to internal agreement submission after API error.', error);
       }
-      return (await callInternal('/api/internal/contracts/submit', { method: 'POST', body: JSON.stringify(payload) })).json();
+      try {
+        return (await callInternal('/api/internal/contracts/submit', { method: 'POST', body: JSON.stringify(payload) })).json();
+      } catch {
+        return await submitAgreementClientFallback(payload);
+      }
     }
   },
   downloadTemplate: async (agreementType: AgreementType) => {
@@ -74,7 +83,11 @@ export const contractApi = {
       if (!isBackendUnavailableError(error)) {
         console.warn('Falling back to internal agreement PDF generation after API error.', error);
       }
-      return await (await callInternal(`/api/internal/contracts/${agreementType}/download`)).blob();
+      try {
+        return await (await callInternal(`/api/internal/contracts/${agreementType}/download`)).blob();
+      } catch {
+        return await generateAgreementPdfFallback(agreementType);
+      }
     }
   },
 };
