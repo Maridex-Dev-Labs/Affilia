@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChatCircleDots, PaperPlaneTilt, Plus, ThumbsDown, ThumbsUp, Users } from '@phosphor-icons/react';
+import { ChatCircleDots, PaperPlaneTilt, Plus, ThumbsDown, ThumbsUp, Trash, Users } from '@phosphor-icons/react';
 
 import Button, { SecondaryButton } from '@/components/ui/Button';
 import { communityApi } from '@/lib/api/community';
@@ -125,6 +125,11 @@ function sameCalendarDay(left?: string | null, right?: string | null) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+function sameSender(left?: MessageItem | null, right?: MessageItem | null) {
+  if (!left || !right) return false;
+  return left.sender_id === right.sender_id;
+}
+
 function Avatar({
   person,
   className,
@@ -173,6 +178,19 @@ export default function CommunityHub({ role }: CommunityHubProps) {
   const [forumPulse, setForumPulse] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const currentUserProfile = useMemo<ProfileLite | null>(
+    () =>
+      user
+        ? {
+            id: user.id,
+            full_name: profile?.full_name || user.user_metadata?.full_name || null,
+            business_name: profile?.business_name || null,
+            avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
+            role: profile?.role || null,
+          }
+        : null,
+    [profile?.avatar_url, profile?.business_name, profile?.full_name, profile?.role, user],
+  );
 
   const oppositeRole = role === 'merchant' ? 'affiliate' : 'merchant';
   const dmCandidates = directory.filter((candidate) => candidate.role === oppositeRole);
@@ -531,6 +549,37 @@ export default function CommunityHub({ role }: CommunityHubProps) {
     await loadForum();
   };
 
+  const deleteMessage = async (messageId: string) => {
+    if (!selectedThreadId) return;
+    setStatus(null);
+    setBusyKey(`delete-message:${messageId}`);
+    try {
+      await communityApi.deleteMessage(messageId);
+      await loadMessages(selectedThreadId);
+      await loadThreads();
+    } catch (error: unknown) {
+      setStatus(sanitizeUserFacingError(error, 'We could not delete the message right now.'));
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const deleteThread = async () => {
+    if (!selectedThreadId) return;
+    setStatus(null);
+    setBusyKey('delete-thread');
+    try {
+      await communityApi.deleteThread(selectedThreadId);
+      setSelectedThreadId(null);
+      setMessages([]);
+      await loadThreads();
+    } catch (error: unknown) {
+      setStatus(sanitizeUserFacingError(error, 'We could not delete the conversation right now.'));
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   const toggleReaction = async (postId: string, reaction: 'like' | 'dislike') => {
     if (!user) return;
     setStatus(null);
@@ -700,6 +749,17 @@ export default function CommunityHub({ role }: CommunityHubProps) {
                   <div className="text-lg font-bold text-white">{displayName(selectedThread?.counterpart)}</div>
                   <div className="text-sm text-[#8f98ab]">{selectedThreadOnline ? 'Online now' : 'Live conversation'}</div>
                 </div>
+                {selectedThreadId ? (
+                  <button
+                    type="button"
+                    onClick={deleteThread}
+                    disabled={busyKey === 'delete-thread'}
+                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-[#BB0000]/25 bg-[#BB0000]/10 px-3 py-2 text-xs font-semibold text-[#ffb2b2] transition hover:bg-[#BB0000]/15 disabled:opacity-60"
+                  >
+                    <Trash size={14} />
+                    {busyKey === 'delete-thread' ? 'Deleting...' : 'Delete chat'}
+                  </button>
+                ) : null}
               </div>
             </div>
             <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto py-5">
@@ -725,8 +785,22 @@ export default function CommunityHub({ role }: CommunityHubProps) {
                             Open attachment
                           </a>
                         ) : null}
-                        <div className={`mt-2 text-[10px] ${mine ? 'text-white/75' : 'text-[#7e869a]'}`}>{formatStamp(message.created_at)}</div>
+                        <div className={`mt-2 flex items-center justify-between gap-3 text-[10px] ${mine ? 'text-white/75' : 'text-[#7e869a]'}`}>
+                          <span>{formatStamp(message.created_at)}</span>
+                          {mine ? (
+                            <button
+                              type="button"
+                              onClick={() => deleteMessage(message.id)}
+                              disabled={busyKey === `delete-message:${message.id}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition ${mine ? 'hover:bg-white/10' : 'hover:bg-white/5'}`}
+                            >
+                              <Trash size={12} />
+                              {busyKey === `delete-message:${message.id}` ? 'Deleting...' : 'Delete'}
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
+                      {mine ? <Avatar person={currentUserProfile} className="h-9 w-9 shrink-0" /> : null}
                     </div>
                   </div>
                 );

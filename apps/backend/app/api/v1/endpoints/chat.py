@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.api.deps import get_current_user
-from app.db.supabase import insert, select, update
+from app.db.supabase import delete, insert, select, update
 
 router = APIRouter()
 
@@ -27,6 +27,16 @@ def _ensure_member(thread_id: str, user_id: str) -> None:
     )
     if not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You are not a member of this thread.')
+
+
+def _get_message(message_id: str) -> dict:
+    message = select(
+        'chat_messages',
+        {'id': f'eq.{message_id}', 'limit': 1, 'select': 'id,thread_id,sender_id'},
+    )
+    if not message:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Message not found.')
+    return message[0]
 
 
 @router.get('/threads')
@@ -65,3 +75,22 @@ def create_message(payload: ChatMessagePayload, user=Depends(get_current_user)):
     created = insert('chat_messages', {'thread_id': payload.thread_id, 'sender_id': user['id'], 'body': payload.body, 'media_url': payload.media_url})
     update('chat_threads', {'updated_at': datetime.now(UTC).isoformat()}, {'id': f'eq.{payload.thread_id}'})
     return {'message': created[0] if isinstance(created, list) else created}
+
+
+@router.delete('/messages/{message_id}')
+def remove_message(message_id: str, user=Depends(get_current_user)):
+    message = _get_message(message_id)
+    _ensure_member(message['thread_id'], user['id'])
+    if message['sender_id'] != user['id']:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You can only delete your own messages.')
+
+    delete('chat_messages', {'id': f'eq.{message_id}'})
+    update('chat_threads', {'updated_at': datetime.now(UTC).isoformat()}, {'id': f'eq.{message["thread_id"]}'})
+    return {'ok': True}
+
+
+@router.delete('/threads/{thread_id}')
+def remove_thread(thread_id: str, user=Depends(get_current_user)):
+    _ensure_member(thread_id, user['id'])
+    delete('chat_threads', {'id': f'eq.{thread_id}'})
+    return {'ok': True}
