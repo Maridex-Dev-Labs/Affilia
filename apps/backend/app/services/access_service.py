@@ -3,6 +3,14 @@ from fastapi import HTTPException, status
 from app.db.supabase import select
 
 
+def default_free_plan(role: str) -> dict | None:
+    if role == 'affiliate':
+        return {'plan_code': 'affiliate_starter', 'status': 'active', 'role': role, 'source': 'implicit_free'}
+    if role == 'merchant':
+        return {'plan_code': 'merchant_free', 'status': 'active', 'role': role, 'source': 'implicit_free'}
+    return None
+
+
 def get_active_plan(profile_id: str, role: str | None = None) -> dict | None:
     params = {
         'profile_id': f'eq.{profile_id}',
@@ -14,7 +22,9 @@ def get_active_plan(profile_id: str, role: str | None = None) -> dict | None:
     if role:
         params['role'] = f'eq.{role}'
     rows = select('profile_plan_selections', params=params)
-    return rows[0] if rows else None
+    if rows:
+        return rows[0]
+    return default_free_plan(role) if role else None
 
 
 def ensure_active_plan(profile_id: str, role: str, detail: str):

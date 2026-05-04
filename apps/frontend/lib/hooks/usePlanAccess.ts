@@ -65,8 +65,9 @@ export function usePlanAccess() {
     };
   }, [profile?.id]);
 
-  const activePlanCode = profile?.active_plan_code || (selection?.status === 'active' ? selection.plan_code : null);
-  const activePlanStatus = profile?.plan_status || selection?.status || 'inactive';
+  const fallbackPlanCode = profile?.role === 'affiliate' ? 'affiliate_starter' : profile?.role === 'merchant' ? 'merchant_free' : null;
+  const activePlanCode = profile?.active_plan_code || (selection?.status === 'active' ? selection.plan_code : fallbackPlanCode);
+  const activePlanStatus = profile?.plan_status || selection?.status || (fallbackPlanCode ? 'active' : 'inactive');
   const affiliateVerificationStatus = profile?.affiliate_verification_status || 'not_started';
 
   const model = useMemo(() => {

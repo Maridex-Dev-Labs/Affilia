@@ -219,11 +219,9 @@ def record_affiliate_sale(product_id: str, payload: ManualSalePayload, user=Depe
     if affiliate.get('affiliate_verification_status') != 'verified':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='The affiliate tied to this code is not verified yet.')
 
-    affiliate_plans = select(
-        'profile_plan_selections',
-        params={'profile_id': f'eq.{affiliate["id"]}', 'role': 'eq.affiliate', 'status': 'eq.active', 'select': '*', 'limit': 1},
-    )
-    if not affiliate_plans:
+    affiliate_plan_code = affiliate.get('active_plan_code') or 'affiliate_starter'
+    affiliate_plan_status = affiliate.get('plan_status') or 'active'
+    if affiliate_plan_status != 'active' or not affiliate_plan_code:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='The affiliate tied to this code does not have an active package.')
 
     duplicate = select(

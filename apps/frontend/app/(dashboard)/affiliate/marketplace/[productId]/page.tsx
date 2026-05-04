@@ -46,8 +46,8 @@ export default function Page() {
       setStatus('Complete affiliate verification in Settings before generating links.');
       return;
     }
-    if (!activePlanCode || !canGenerateAffiliateLinks) {
-      setStatus('Activate an affiliate package in Settings before generating links.');
+    if (!canGenerateAffiliateLinks) {
+      setStatus('Complete affiliate verification in Settings before generating links.');
       return;
     }
     try {

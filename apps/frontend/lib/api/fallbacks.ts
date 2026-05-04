@@ -88,7 +88,9 @@ export async function generateAffiliateLinkFallback(productId: string) {
   if (profile.affiliate_verification_status !== 'verified') {
     throw new Error('Complete affiliate verification before generating links.');
   }
-  if (!profile.active_plan_code || profile.plan_status !== 'active') {
+  const effectivePlanCode = profile.active_plan_code || 'affiliate_starter';
+  const effectivePlanStatus = profile.plan_status || 'active';
+  if (!effectivePlanCode || effectivePlanStatus !== 'active') {
     throw new Error('Activate an affiliate package in Settings before generating links.');
   }
 

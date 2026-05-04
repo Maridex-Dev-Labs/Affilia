@@ -4,62 +4,53 @@ export const AFFILIATE_PRE_VERIFICATION_ROUTES = [
   '/affiliate/overview',
   '/affiliate/marketplace',
   '/affiliate/settings',
+  '/affiliate/community',
+  '/affiliate/academy',
 ] as const;
+
+const DEFAULT_FREE_ROUTES = {
+  affiliate: [
+    '/affiliate/overview',
+    '/affiliate/marketplace',
+    '/affiliate/community',
+    '/affiliate/my-links',
+    '/affiliate/earnings',
+    '/affiliate/receipts',
+    '/affiliate/achievements',
+    '/affiliate/academy',
+    '/affiliate/leaderboard',
+    '/affiliate/settings',
+  ],
+  merchant: [
+    '/merchant/overview',
+    '/merchant/products',
+    '/merchant/orders',
+    '/merchant/affiliates',
+    '/merchant/community',
+    '/merchant/analytics',
+    '/merchant/escrow',
+    '/merchant/receipts',
+    '/merchant/settings',
+  ],
+} as const;
 
 const FEATURE_ROUTE_MAP = {
   affiliate: {
-    affiliate_starter: [
-      '/affiliate/overview',
-      '/affiliate/marketplace',
-      '/affiliate/community',
-      '/affiliate/my-links',
-      '/affiliate/earnings',
-      '/affiliate/receipts',
-      '/affiliate/achievements',
-      '/affiliate/settings',
-    ],
+    affiliate_starter: DEFAULT_FREE_ROUTES.affiliate,
     affiliate_growth: [
-      '/affiliate/overview',
-      '/affiliate/marketplace',
-      '/affiliate/community',
-      '/affiliate/my-links',
-      '/affiliate/earnings',
-      '/affiliate/receipts',
-      '/affiliate/achievements',
-      '/affiliate/settings',
-      '/affiliate/academy',
-      '/affiliate/leaderboard',
+      ...DEFAULT_FREE_ROUTES.affiliate,
     ],
   },
   merchant: {
+    merchant_free: DEFAULT_FREE_ROUTES.merchant,
     merchant_starter: [
-      '/merchant/overview',
-      '/merchant/products',
-      '/merchant/orders',
-      '/merchant/escrow',
-      '/merchant/receipts',
-      '/merchant/settings',
+      ...DEFAULT_FREE_ROUTES.merchant,
     ],
     merchant_growth: [
-      '/merchant/overview',
-      '/merchant/products',
-      '/merchant/orders',
-      '/merchant/escrow',
-      '/merchant/receipts',
-      '/merchant/settings',
-      '/merchant/community',
-      '/merchant/analytics',
+      ...DEFAULT_FREE_ROUTES.merchant,
     ],
     merchant_pro: [
-      '/merchant/overview',
-      '/merchant/products',
-      '/merchant/orders',
-      '/merchant/escrow',
-      '/merchant/receipts',
-      '/merchant/settings',
-      '/merchant/community',
-      '/merchant/analytics',
-      '/merchant/affiliates',
+      ...DEFAULT_FREE_ROUTES.merchant,
     ],
   },
 } as const;
@@ -72,11 +63,9 @@ function routeMatches(pathname: string | null | undefined, route: string) {
 export function allowedRoutesForPlan(role: PlanRole, activePlanCode: string | null | undefined) {
   const roleMap = FEATURE_ROUTE_MAP[role];
   if (!activePlanCode) {
-    return role === 'affiliate'
-      ? ['/affiliate/overview', '/affiliate/marketplace', '/affiliate/settings']
-      : ['/merchant/overview', '/merchant/settings', '/merchant/receipts'];
+    return DEFAULT_FREE_ROUTES[role];
   }
-  return (roleMap as Record<string, readonly string[]>)[activePlanCode] || [];
+  return (roleMap as Record<string, readonly string[]>)[activePlanCode] || DEFAULT_FREE_ROUTES[role];
 }
 
 export function canAccessWorkspacePath({
@@ -99,5 +88,5 @@ export function canAccessWorkspacePath({
 }
 
 export function hasAffiliateOperationalAccess(activePlanCode: string | null | undefined, affiliateVerificationStatus?: string | null) {
-  return affiliateVerificationStatus === 'verified' && Boolean(activePlanCode);
+  return affiliateVerificationStatus === 'verified' && Boolean(activePlanCode || activePlanCode === 'affiliate_starter');
 }
