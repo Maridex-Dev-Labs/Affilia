@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChatCircleDots,
@@ -14,6 +15,8 @@ import {
 } from '@phosphor-icons/react';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
 import { affiliatePlans, merchantPlans, formatKes } from '@/lib/config/pricing';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useProfile } from '@/lib/hooks/useProfile';
 
 const KENYA_IMAGES = [
   'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&q=80&w=1920',
@@ -65,12 +68,33 @@ function SectionCard({ children, delay = 0 }: { children: React.ReactNode; delay
 }
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const [heroImageIndex, setHeroImageIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => setHeroImageIndex((current) => (current + 1) % KENYA_IMAGES.length), 6000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (authLoading || profileLoading || !user) return;
+
+    if (!profile?.role || profile.onboarding_complete === false) {
+      router.replace('/onboarding/role-selection');
+      return;
+    }
+
+    if (profile.role === 'merchant') {
+      router.replace('/merchant/overview');
+      return;
+    }
+
+    if (profile.role === 'affiliate') {
+      router.replace('/affiliate/overview');
+    }
+  }, [authLoading, profile, profileLoading, router, user]);
 
   return (
     <div>
