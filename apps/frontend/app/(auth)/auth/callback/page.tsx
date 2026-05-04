@@ -25,23 +25,6 @@ export default function Page() {
     const resolvePostAuthPath = async (verifiedFlow: string) => {
       if (requestedNextPath) return requestedNextPath;
       if (verifiedFlow === 'signup') return '/onboarding/role-selection';
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return '/dashboard';
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role,onboarding_complete')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!profile?.role || profile.onboarding_complete === false) {
-        return '/onboarding/role-selection';
-      }
-
       return '/dashboard';
     };
 

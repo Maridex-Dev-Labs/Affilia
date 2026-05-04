@@ -27,16 +27,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (!profileLoading && profile && !profile.onboarding_complete) {
-      router.push('/onboarding/role-selection');
-    }
-  }, [profileLoading, profile, router]);
-
-  useEffect(() => {
     if (!profileLoading && profile?.must_change_password) {
       router.push('/update-password?next=/dashboard');
     }
   }, [profile, profileLoading, router]);
+
+  useEffect(() => {
+    if (!profileLoading && user && profile && !profile.role) {
+      router.replace('/dashboard');
+    }
+  }, [profile, profileLoading, router, user]);
 
   if (loading || profileLoading || planAccessLoading || !safePathname) {
     return (
@@ -49,10 +49,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const showWorkspaceGate =
     Boolean(profile?.role && (profile.role === 'merchant' || profile.role === 'affiliate')) &&
     !canAccessPath(safePathname);
-  const navItems =
-    profile?.role === 'merchant'
-      ? merchantNav.filter((item) => canAccessPath(item.href))
-      : affiliateNav.filter((item) => canAccessPath(item.href));
+  const navItems = profile?.role === 'merchant'
+    ? merchantNav.filter((item) => canAccessPath(item.href))
+    : profile?.role === 'affiliate'
+      ? affiliateNav.filter((item) => canAccessPath(item.href))
+      : [];
 
   return (
     <div className="dashboard-shell min-h-screen bg-kenya-navy text-white">

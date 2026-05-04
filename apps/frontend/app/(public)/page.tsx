@@ -81,19 +81,17 @@ export default function LandingPage() {
   useEffect(() => {
     if (authLoading || profileLoading || !user) return;
 
-    if (!profile?.role || profile.onboarding_complete === false) {
-      router.replace('/onboarding/role-selection');
-      return;
-    }
-
-    if (profile.role === 'merchant') {
+    if (profile?.role === 'merchant') {
       router.replace('/merchant/overview');
       return;
     }
 
-    if (profile.role === 'affiliate') {
+    if (profile?.role === 'affiliate') {
       router.replace('/affiliate/overview');
+      return;
     }
+
+    router.replace('/dashboard');
   }, [authLoading, profile, profileLoading, router, user]);
 
   return (
