@@ -14,6 +14,14 @@ type PlanSelectionRecord = {
   plan_name: string;
 };
 
+function makeChannelName(prefix: string, id: string) {
+  const suffix =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return `${prefix}:${id}:${suffix}`;
+}
+
 export function usePlanAccess() {
   const { profile, loading: profileLoading } = useProfile();
   const [selection, setSelection] = useState<PlanSelectionRecord | null>(null);
@@ -46,7 +54,7 @@ export function usePlanAccess() {
     void load();
 
     const channel = supabase
-      .channel(`plan-access:${profile.id}`)
+      .channel(makeChannelName('plan-access', profile.id))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_plan_selections', filter: `profile_id=eq.${profile.id}` }, load)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${profile.id}` }, load)
       .subscribe();

@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from './useAuth';
 
+function makeChannelName(prefix: string, id: string) {
+  const suffix =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return `${prefix}:${id}:${suffix}`;
+}
+
 export function useProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
@@ -55,7 +63,7 @@ export function useProfile() {
 
     const channel = user
       ? supabase
-          .channel(`profile:${user.id}`)
+          .channel(makeChannelName('profile', user.id))
           .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, load)
           .subscribe()
       : null;

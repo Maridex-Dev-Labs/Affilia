@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.7.0",
   "scripts": {
-    "dev": "next dev -p 6100",
+    "dev": "next dev --webpack -p 6100",
     "build": "next build --webpack",
     "start": "next start -p 6100",
     "lint": "eslint .",
