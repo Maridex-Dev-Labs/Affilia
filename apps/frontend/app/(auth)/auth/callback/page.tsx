@@ -25,31 +25,59 @@ export default function Page() {
   useEffect(() => {
     let active = true;
 
+    const redirectAfterSuccess = async (verifiedFlow: string) => {
+      if (!active) return;
+      if (verifiedFlow === 'signup') {
+        setMessage('Email verified. Preparing your account...');
+        router.replace(`/verify-email/success?next=${encodeURIComponent(nextPath)}`);
+        return;
+      }
+
+      setMessage('Authentication confirmed. Redirecting...');
+      router.replace(nextPath);
+    };
+
     const completeAuth = async () => {
       const code = searchParams.get('code');
       const tokenHash = searchParams.get('token_hash');
       const type = searchParams.get('type') as EmailOtpType | null;
+      const hashParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.hash.replace(/^#/, '')) : null;
+      const accessToken = hashParams?.get('access_token');
+      const refreshToken = hashParams?.get('refresh_token');
+      const hashType = hashParams?.get('type') as EmailOtpType | null;
+      const hashFlow = hashType === 'signup' ? 'signup' : flow;
 
       try {
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
+          await redirectAfterSuccess(flow);
+          return;
         } else if (tokenHash && type && allowedOtpTypes.has(type)) {
           const { error: otpError } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
           if (otpError) throw otpError;
+          await redirectAfterSuccess(type === 'signup' ? 'signup' : flow);
+          return;
+        } else if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) throw sessionError;
+          await redirectAfterSuccess(hashFlow);
+          return;
         } else {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session) {
+            await redirectAfterSuccess(flow);
+            return;
+          }
+
           throw new Error('Verification link is incomplete or has already been used.');
         }
-
-        if (!active) return;
-        if (flow === 'signup') {
-          setMessage('Email verified. Preparing your account...');
-          router.replace(`/verify-email/success?next=${encodeURIComponent(nextPath)}`);
-          return;
-        }
-
-        setMessage('Authentication confirmed. Redirecting...');
-        router.replace(nextPath);
       } catch (err: any) {
         if (!active) return;
         setError(err.message || 'We could not complete verification. Request a fresh link and try again.');
