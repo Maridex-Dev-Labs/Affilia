@@ -33,7 +33,7 @@ async function uploadPrivateToBucket(bucket: string, userId: string, file: File)
 }
 
 export async function uploadMerchantDoc(userId: string, file: File) {
-  return uploadToBucket(buckets.merchantDocs, userId, file);
+  return uploadPrivateToBucket(buckets.merchantDocs, userId, file);
 }
 
 export async function uploadProductImage(userId: string, file: File) {
@@ -49,7 +49,7 @@ export async function uploadCommunityMedia(userId: string, file: File) {
 }
 
 export async function uploadDepositScreenshot(userId: string, file: File) {
-  return uploadToBucket(buckets.merchantDocs, userId, file);
+  return uploadPrivateToBucket(buckets.merchantDocs, userId, file);
 }
 
 export async function uploadProfileAvatar(userId: string, file: File) {

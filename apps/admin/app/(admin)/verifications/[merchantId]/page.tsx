@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
 import { supabase } from '@/lib/supabase/admin-client';
+import { openSignedDocument } from '@/lib/documents/openDocument';
 
 type MerchantDetail = {
   id: string;
@@ -73,7 +74,7 @@ export default function Page() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to open document.');
-      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+      openSignedDocument(data.signedUrl, path);
     } catch (err: unknown) {
       if (rawPath.startsWith('http')) {
         window.open(rawPath, '_blank', 'noopener,noreferrer');
