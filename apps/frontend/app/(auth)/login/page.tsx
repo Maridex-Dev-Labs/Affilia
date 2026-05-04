@@ -3,13 +3,10 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { buildAuthRedirect } from '@/lib/auth/redirects';
 import { supabase } from '@/lib/supabase/client';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
 import BrandLogo from '@/components/shared/BrandLogo';
-
-function buildAuthRedirect(path: string) {
-  return `${window.location.origin}${path}`;
-}
 
 export default function Page() {
   const router = useRouter();

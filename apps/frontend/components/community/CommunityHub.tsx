@@ -29,6 +29,8 @@ type ThreadItem = {
   subject?: string | null;
   counterpart?: ProfileLite | null;
   lastMessage?: { body?: string | null } | null;
+  updated_at?: string | null;
+  unreadCount?: number;
 };
 
 type MessageItem = {
@@ -79,6 +81,76 @@ type ForumReaction = {
   reaction: 'like' | 'dislike';
 };
 
+type PresenceMeta = {
+  user_id?: string;
+  online_at?: string;
+};
+
+function displayName(person?: ProfileLite | null) {
+  return person?.business_name || person?.full_name || 'Community member';
+}
+
+function initials(person?: ProfileLite | null) {
+  const value = displayName(person);
+  return value
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('');
+}
+
+function formatStamp(value?: string | null) {
+  if (!value) return '';
+  return new Date(value).toLocaleString('en-KE', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDayLabel(value?: string | null) {
+  if (!value) return '';
+  return new Date(value).toLocaleDateString('en-KE', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+function sameCalendarDay(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  const a = new Date(left);
+  const b = new Date(right);
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function Avatar({
+  person,
+  className,
+  textClassName = 'text-xs',
+}: {
+  person?: ProfileLite | null;
+  className: string;
+  textClassName?: string;
+}) {
+  if (person?.avatar_url) {
+    return (
+      <img
+        src={person.avatar_url}
+        alt={displayName(person)}
+        className={`${className} rounded-2xl object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div className={`flex items-center justify-center rounded-2xl bg-white/5 font-black text-white ${className} ${textClassName}`}>
+      {initials(person)}
+    </div>
+  );
+}
+
 export default function CommunityHub({ role }: CommunityHubProps) {
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -96,12 +168,16 @@ export default function CommunityHub({ role }: CommunityHubProps) {
   const [postFiles, setPostFiles] = useState<File[]>([]);
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [unreadThreadCounts, setUnreadThreadCounts] = useState<Record<string, number>>({});
+  const [activePresenceIds, setActivePresenceIds] = useState<string[]>([]);
+  const [forumPulse, setForumPulse] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const oppositeRole = role === 'merchant' ? 'affiliate' : 'merchant';
   const dmCandidates = directory.filter((candidate) => candidate.role === oppositeRole);
   const mentionCandidates = directory.filter((candidate) => candidate.id !== user?.id);
+  const totalUnreadThreads = Object.values(unreadThreadCounts).reduce((sum, count) => sum + count, 0);
 
   const loadThreads = async () => {
     if (!user) return;
@@ -160,6 +236,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
         ...thread,
         counterpart: otherMember ? profileMap.get(otherMember.user_id) : null,
         lastMessage: groupedRecent.get(thread.id) || null,
+        unreadCount: unreadThreadCounts[thread.id] || 0,
       };
     });
 
@@ -178,6 +255,12 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       return;
     }
     setMessages((data || []) as MessageItem[]);
+    setUnreadThreadCounts((current) => {
+      if (!current[threadId]) return current;
+      const next = { ...current };
+      delete next[threadId];
+      return next;
+    });
   };
 
   const loadDirectory = async () => {
@@ -289,15 +372,31 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       .channel(`community:${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_threads' }, loadThreads)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_thread_members', filter: `user_id=eq.${user.id}` }, loadThreads)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_posts' }, loadForum)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_comments' }, loadForum)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_reactions' }, loadForum)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
+        const threadId = payload.new?.thread_id as string | undefined;
+        const senderId = payload.new?.sender_id as string | undefined;
+        void loadThreads();
+        if (!threadId || senderId === user.id || threadId === selectedThreadId) return;
+        setUnreadThreadCounts((current) => ({ ...current, [threadId]: (current[threadId] || 0) + 1 }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_posts' }, () => {
+        setForumPulse(true);
+        void loadForum();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_comments' }, () => {
+        setForumPulse(true);
+        void loadForum();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_reactions' }, () => {
+        setForumPulse(true);
+        void loadForum();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(threadChannel);
     };
-  }, [user]);
+  }, [user, selectedThreadId]);
 
   useEffect(() => {
     loadMessages(selectedThreadId);
@@ -315,6 +414,12 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       supabase.removeChannel(messageChannel);
     };
   }, [selectedThreadId]);
+
+  useEffect(() => {
+    if (tab === 'forum' && forumPulse) {
+      setForumPulse(false);
+    }
+  }, [forumPulse, tab]);
 
   const startThread = async () => {
     if (!user || !targetUserId) return;
@@ -459,6 +564,50 @@ export default function CommunityHub({ role }: CommunityHubProps) {
     () => threads.find((thread) => thread.id === selectedThreadId) || null,
     [threads, selectedThreadId],
   );
+  const selectedThreadOnline = Boolean(
+    selectedThread?.counterpart?.id && activePresenceIds.includes(selectedThread.counterpart.id),
+  );
+  const groupedMessages = useMemo(() => {
+    return messages.map((message, index) => ({
+      message,
+      showDayDivider: index === 0 || !sameCalendarDay(messages[index - 1]?.created_at, message.created_at),
+    }));
+  }, [messages]);
+
+  useEffect(() => {
+    if (!user || !selectedThreadId) {
+      setActivePresenceIds([]);
+      return;
+    }
+
+    const presenceChannel = supabase.channel(`thread-presence:${selectedThreadId}`, {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState<PresenceMeta>();
+        const activeIds = Object.keys(state).filter((id) => id !== user.id);
+        setActivePresenceIds(activeIds);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(presenceChannel);
+      setActivePresenceIds([]);
+    };
+  }, [selectedThreadId, user]);
 
   return (
     <div className="space-y-6">
@@ -469,12 +618,18 @@ export default function CommunityHub({ role }: CommunityHubProps) {
             Real-time direct chat and moderated forum guidance for {role === 'merchant' ? 'merchants' : 'affiliates'}.
           </p>
         </div>
-        <div className="flex gap-2 rounded-full border border-white/8 bg-black/30 p-1 text-sm font-bold">
-          <button className={`rounded-full px-4 py-2 ${tab === 'dm' ? 'bg-white/10 text-white' : 'text-[#8f98ab]'}`} onClick={() => setTab('dm')}>
+        <div className="flex gap-2 rounded-full border border-white/8 bg-black/30 p-1 text-sm font-bold shadow-[0_12px_34px_rgba(0,0,0,0.18)]">
+          <button className={`rounded-full px-4 py-2 transition ${tab === 'dm' ? 'bg-white/10 text-white' : 'text-[#8f98ab] hover:text-white'}`} onClick={() => setTab('dm')}>
             Direct Messages
+            {totalUnreadThreads > 0 ? (
+              <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-[#009A44] px-1.5 py-0.5 text-[10px] text-white">
+                {totalUnreadThreads}
+              </span>
+            ) : null}
           </button>
-          <button className={`rounded-full px-4 py-2 ${tab === 'forum' ? 'bg-white/10 text-white' : 'text-[#8f98ab]'}`} onClick={() => setTab('forum')}>
+          <button className={`rounded-full px-4 py-2 transition ${tab === 'forum' ? 'bg-white/10 text-white' : 'text-[#8f98ab] hover:text-white'}`} onClick={() => setTab('forum')}>
             Forum
+            {forumPulse ? <span className="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-[#BB0000] shadow-[0_0_0_6px_rgba(187,0,0,0.12)]" /> : null}
           </button>
         </div>
       </div>
@@ -501,11 +656,31 @@ export default function CommunityHub({ role }: CommunityHubProps) {
               {threads.map((thread) => (
                 <button
                   key={thread.id}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left ${selectedThreadId === thread.id ? 'border-white/20 bg-black/30' : 'border-white/8 bg-black/10'}`}
+                  className={`w-full rounded-[1.4rem] border px-4 py-4 text-left transition ${selectedThreadId === thread.id ? 'border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))]' : 'border-white/8 bg-black/10 hover:bg-white/[0.03]'}`}
                   onClick={() => setSelectedThreadId(thread.id)}
                 >
-                  <div className="font-bold text-white">{thread.counterpart?.business_name || thread.counterpart?.full_name || 'Conversation'}</div>
-                  <div className="mt-1 text-xs text-[#8f98ab]">{thread.lastMessage?.body || thread.subject || 'No messages yet'}</div>
+                  <div className="flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      <Avatar person={thread.counterpart} className="h-11 w-11" />
+                      {thread.counterpart?.id && activePresenceIds.includes(thread.counterpart.id) ? (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#141A2B] bg-[#009A44]" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="truncate font-bold text-white">{displayName(thread.counterpart)}</div>
+                        <div className="flex items-center gap-2">
+                          {thread.unreadCount ? (
+                            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#009A44] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                              {thread.unreadCount}
+                            </span>
+                          ) : null}
+                          <span className="text-[11px] text-[#7e869a]">{formatStamp(thread.updated_at)}</span>
+                        </div>
+                      </div>
+                      <div className="mt-1 truncate text-xs text-[#8f98ab]">{thread.lastMessage?.body || thread.subject || 'No messages yet'}</div>
+                    </div>
+                  </div>
                 </button>
               ))}
               {threads.length === 0 ? <div className="text-sm text-muted">No conversations yet.</div> : null}
@@ -514,22 +689,44 @@ export default function CommunityHub({ role }: CommunityHubProps) {
 
           <div className="card-surface p-6 flex min-h-[540px] flex-col">
             <div className="border-b border-white/8 pb-4">
-              <div className="text-lg font-bold text-white">{selectedThread?.counterpart?.business_name || selectedThread?.counterpart?.full_name || 'Select a conversation'}</div>
-              <div className="text-sm text-[#8f98ab]">Messages sync in real time.</div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Avatar person={selectedThread?.counterpart} className="h-12 w-12" textClassName="text-sm" />
+                  {selectedThreadOnline ? (
+                    <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#141A2B] bg-[#009A44]" />
+                  ) : null}
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">{displayName(selectedThread?.counterpart)}</div>
+                  <div className="text-sm text-[#8f98ab]">{selectedThreadOnline ? 'Online now' : 'Live conversation'}</div>
+                </div>
+              </div>
             </div>
-            <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto py-4">
-              {messages.map((message) => {
+            <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto py-5">
+              {groupedMessages.map(({ message, showDayDivider }) => {
                 const mine = message.sender_id === user?.id;
                 return (
-                  <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-3xl px-4 py-3 text-sm ${mine ? 'bg-[#009A44] text-white' : 'bg-black/30 text-[#d2d8e4]'}`}>
-                      <div>{message.body}</div>
-                      {message.media_url ? (
-                        <a href={message.media_url} target="_blank" rel="noreferrer" className="mt-2 block text-xs underline underline-offset-4">
-                          Open attachment
-                        </a>
-                      ) : null}
-                      <div className={`mt-2 text-[10px] ${mine ? 'text-white/75' : 'text-[#7e869a]'}`}>{new Date(message.created_at).toLocaleString('en-KE')}</div>
+                  <div key={message.id}>
+                    {showDayDivider ? (
+                      <div className="mb-4 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-white/8" />
+                        <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7e869a]">
+                          {formatDayLabel(message.created_at)}
+                        </div>
+                        <div className="h-px flex-1 bg-white/8" />
+                      </div>
+                    ) : null}
+                    <div className={`flex items-end gap-3 ${mine ? 'justify-end' : 'justify-start'}`}>
+                      {!mine ? <Avatar person={selectedThread?.counterpart} className="h-9 w-9 shrink-0" /> : null}
+                      <div className={`max-w-[82%] rounded-[1.6rem] px-4 py-3 text-sm shadow-[0_10px_28px_rgba(0,0,0,0.14)] ${mine ? 'bg-[linear-gradient(135deg,#009A44,#127a46)] text-white' : 'border border-white/8 bg-[#101521] text-[#d2d8e4]'}`}>
+                        <div>{message.body}</div>
+                        {message.media_url ? (
+                          <a href={message.media_url} target="_blank" rel="noreferrer" className="mt-2 block text-xs underline underline-offset-4">
+                            Open attachment
+                          </a>
+                        ) : null}
+                        <div className={`mt-2 text-[10px] ${mine ? 'text-white/75' : 'text-[#7e869a]'}`}>{formatStamp(message.created_at)}</div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -537,8 +734,8 @@ export default function CommunityHub({ role }: CommunityHubProps) {
               {selectedThreadId && messages.length === 0 ? <div className="text-sm text-muted">No messages yet. Say hello.</div> : null}
               {!selectedThreadId ? <div className="flex h-full items-center justify-center text-sm text-muted">Pick or create a conversation.</div> : null}
             </div>
-            <div className="mt-4 flex gap-3">
-              <input className="input-shell" value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder="Type your message..." />
+            <div className="mt-4 flex gap-3 rounded-[1.5rem] border border-white/8 bg-black/20 p-3">
+              <input className="input-shell !border-0 !bg-transparent" value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder="Type your message..." />
               <Button onClick={sendMessage} disabled={busyKey === 'send-message'}>
                 <PaperPlaneTilt size={16} /> {busyKey === 'send-message' ? 'Sending...' : 'Send'}
               </Button>
@@ -601,18 +798,25 @@ export default function CommunityHub({ role }: CommunityHubProps) {
 
           <div className="space-y-4">
             {posts.map((post) => (
-              <div key={post.id} className="card-surface p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">{post.title}</h2>
-                    <div className="mt-1 text-sm text-[#8f98ab]">
-                      by {post.author?.business_name || post.author?.full_name || 'Community member'} · {new Date(post.created_at).toLocaleString('en-KE')}
+              <div key={post.id} className="card-surface overflow-hidden p-0">
+                <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent)] px-6 py-5">
+                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar person={post.author} className="h-11 w-11 shrink-0" />
+                    <div>
+                      <h2 className="text-xl font-bold text-white">{post.title}</h2>
+                      <div className="mt-1 text-sm text-[#8f98ab]">
+                        by {displayName(post.author)} · {formatStamp(post.created_at)}
+                      </div>
                     </div>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase ${post.status === 'approved' ? 'bg-[#009A44]/15 text-[#009A44]' : 'bg-yellow-500/15 text-yellow-300'}`}>
                     {post.status}
                   </span>
                 </div>
+                </div>
+
+                <div className="p-6">
 
                 {post.mentions?.length ? (
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -655,7 +859,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
                   >
                     <ThumbsDown size={16} /> {post.dislikes_count || 0}
                   </button>
-                  <div className="text-xs text-[#8f98ab]">{(comments[post.id] || []).length} comment(s)</div>
+                  <div className="rounded-full border border-white/10 px-3 py-2 text-xs text-[#8f98ab]">{(comments[post.id] || []).length} comment(s)</div>
                 </div>
 
                 <div className="mt-5 rounded-2xl border border-white/8 bg-black/20 p-4">
@@ -665,7 +869,13 @@ export default function CommunityHub({ role }: CommunityHubProps) {
                   <div className="space-y-3">
                     {(comments[post.id] || []).map((comment) => (
                       <div key={comment.id} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                        <div className="text-sm font-bold text-white">{comment.author?.business_name || comment.author?.full_name || 'Member'}</div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar person={comment.author} className="h-9 w-9 shrink-0" />
+                            <div className="text-sm font-bold text-white">{displayName(comment.author)}</div>
+                          </div>
+                          <div className="text-[11px] text-[#7e869a]">{formatStamp(comment.created_at)}</div>
+                        </div>
                         {comment.mentions?.length ? (
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                             {comment.mentions.map((mention) => (
@@ -689,6 +899,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
                     />
                     <SecondaryButton onClick={() => addComment(post.id)}>Reply</SecondaryButton>
                   </div>
+                </div>
                 </div>
               </div>
             ))}

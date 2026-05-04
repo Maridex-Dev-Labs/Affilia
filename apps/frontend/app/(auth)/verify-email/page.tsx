@@ -3,13 +3,10 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { buildAuthRedirect } from '@/lib/auth/redirects';
 import { supabase } from '@/lib/supabase/client';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
 import BrandLogo from '@/components/shared/BrandLogo';
-
-function buildAuthRedirect(path: string) {
-  return `${window.location.origin}${path}`;
-}
 
 export default function Page() {
   const searchParams = useSearchParams();
@@ -38,7 +35,11 @@ export default function Page() {
       },
     });
     if (resendError) {
-      setError(resendError.message);
+      setError(
+        /failed to send confirmation email/i.test(resendError.message)
+          ? 'We could not resend the confirmation email right now. Please try again shortly.'
+          : resendError.message,
+      );
     } else {
       setStatus('A fresh verification email has been sent. Check your inbox and spam folder.');
     }

@@ -20,7 +20,7 @@ async function fallbackCreateThread(payload: CreateThreadPayload) {
 
   const { data: thread, error: threadError } = await supabase
     .from('chat_threads')
-    .insert({ owner_id: user.id, subject: payload.subject || null })
+    .insert({ created_by: user.id, subject: payload.subject || null })
     .select('*')
     .single();
 
@@ -62,7 +62,7 @@ async function fallbackSendMessage(payload: CreateMessagePayload) {
 
   await supabase
     .from('chat_threads')
-    .update({ last_message_at: new Date().toISOString() })
+    .update({ updated_at: new Date().toISOString() })
     .eq('id', payload.thread_id);
 
   return { message: data };

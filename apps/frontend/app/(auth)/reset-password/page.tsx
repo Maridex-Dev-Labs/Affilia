@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { buildAuthRedirect } from '@/lib/auth/redirects';
 import { supabase } from '@/lib/supabase/client';
 import { PrimaryButton } from '@/components/ui/Button';
 
@@ -15,7 +16,7 @@ export default function Page() {
     setIsSubmitting(true);
     setError('');
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      redirectTo: buildAuthRedirect('/update-password'),
     });
     if (err) {
       setError(err.message);

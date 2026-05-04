@@ -88,8 +88,11 @@ export default function Page() {
           {status ? <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-[#cfd5e1]">{status}</div> : null}
         </div>
         <div className="card-surface p-6 text-sm text-[#cfd5e1]">
-          <div className="mb-3 flex items-center gap-2 font-bold text-white"><ArrowClockwise size={18} /> Review status</div>
-          This listing is live because it has already passed merchant and admin review checks.
+          <div className="mb-3 flex items-center gap-2 font-bold text-white"><ArrowClockwise size={18} /> Promotion readiness</div>
+          <div className="space-y-2">
+            <p>This product is approved and ready for affiliate promotion.</p>
+            <p className="text-[#8f98ab]">Generate a smart link to start tracking clicks, conversions, and your commission on verified sales.</p>
+          </div>
         </div>
       </div>
     </div>
