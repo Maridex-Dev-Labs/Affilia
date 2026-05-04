@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user, require_admin_permission, require_any_admin_permission
 from app.db.supabase import select, update, insert
 from app.services.conversion_service import approve_conversion, reject_conversion
-from app.services.plan_service import activate_profile_plan, reject_profile_plan
+from app.services.plan_service import activate_profile_plan, reject_profile_plan, revoke_profile_plan
 
 
 class ReviewPayload(BaseModel):
@@ -92,9 +92,9 @@ def pending_billing(user=Depends(get_current_user)):
     items = select(
         'profile_plan_selections',
         params={
-            'status': 'eq.pending_verification',
+            'status': 'in.(pending_verification,active)',
             'select': '*,profiles:profile_id(full_name,business_name,phone_number,role,active_plan_code,plan_status)',
-            'order': 'paid_at.desc',
+            'order': 'updated_at.desc',
         },
     )
     return {'items': items}
@@ -116,6 +116,15 @@ def reject_billing(profile_id: str, payload: RejectionPayload, user=Depends(get_
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Pending billing record not found')
     return {'status': 'rejected', 'plan': plan}
+
+
+@router.post('/billing/{profile_id}/revoke')
+def revoke_billing(profile_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'billing.approve')
+    plan = revoke_profile_plan(profile_id, approver_id=user['id'], notes=payload.reason)
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Active billing record not found')
+    return {'status': 'revoked', 'plan': plan}
 
 @router.post('/deposits/{deposit_id}/approve')
 def approve_deposit(deposit_id: str, user=Depends(get_current_user)):

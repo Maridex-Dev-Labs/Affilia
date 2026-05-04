@@ -75,3 +75,52 @@ def reject_profile_plan(profile_id: str, approver_id: str, notes: str | None = N
         {'profile_id': f'eq.{profile_id}', 'status': 'eq.pending_verification'},
     )
     return rows[0] if rows else {}
+
+
+
+def revoke_profile_plan(profile_id: str, approver_id: str, notes: str | None = None) -> dict:
+    rows = select(
+        'profile_plan_selections',
+        params={'profile_id': f'eq.{profile_id}', 'status': 'eq.active', 'select': '*', 'limit': 1},
+    )
+    if not rows:
+        return {}
+
+    active_plan = rows[0]
+    now = utcnow_iso()
+    updated_rows = update(
+        'profile_plan_selections',
+        {
+            'status': 'cancelled',
+            'verified_by': approver_id,
+            'verification_notes': notes,
+            'expires_at': now,
+        },
+        {'profile_id': f'eq.{profile_id}', 'status': 'eq.active'},
+    )
+    cancelled_plan = updated_rows[0] if updated_rows else active_plan
+
+    role = active_plan.get('role')
+    fallback_plan_code = 'affiliate_starter' if role == 'affiliate' else 'merchant_free' if role == 'merchant' else None
+    profile_payload = {
+        'active_plan_code': fallback_plan_code,
+        'active_plan_role': role if fallback_plan_code else None,
+        'plan_status': 'active' if fallback_plan_code else None,
+        'plan_activated_at': now if fallback_plan_code else None,
+    }
+    update('profiles', profile_payload, {'id': f'eq.{profile_id}'})
+
+    if role == 'affiliate':
+        membership = select('academy_memberships', params={'user_id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+        payload = {
+            'user_id': profile_id,
+            'access_level': 'free',
+            'source': 'billing_plan',
+            'notes': notes,
+        }
+        if membership:
+            update('academy_memberships', payload, {'user_id': f'eq.{profile_id}'})
+        else:
+            insert('academy_memberships', payload)
+
+    return cancelled_plan
