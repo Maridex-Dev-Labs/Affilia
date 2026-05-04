@@ -92,6 +92,18 @@ export async function submitAgreement(userId: string, payload: Record<string, an
     throw new Error('Agreement type does not match this account role.');
   }
 
+  if (!payload.accepted_terms || !payload.accepted_fees || !payload.accepted_privacy || !payload.accepted_dispute) {
+    throw new Error('All legal acknowledgements must be accepted before submission.');
+  }
+
+  if (payload.acceptance_method === 'digital_signature' && !payload.digital_signature) {
+    throw new Error('A digital signature is required for this submission method.');
+  }
+
+  if (payload.acceptance_method !== 'digital_signature' && !payload.signed_contract_storage_path) {
+    throw new Error('Upload the signed contract before submitting.');
+  }
+
   const openStatuses = ['pending', 'submitted', 'rejected', 'revision_requested'];
   const { data: openAgreements, error: openError } = await supabase
     .from('legal_agreements')

@@ -46,7 +46,9 @@ export const contractApi = {
         })
       ).data;
     } catch (error) {
-      if (!isBackendUnavailableError(error)) throw error;
+      if (!isBackendUnavailableError(error)) {
+        console.warn('Falling back to internal agreement status loader after API error.', error);
+      }
       const params = agreementType ? `?agreement_type=${agreementType}` : '';
       return (await callInternal(`/api/internal/contracts/current${params}`)).json();
     }
@@ -55,7 +57,9 @@ export const contractApi = {
     try {
       return (await apiClient.post('/api/contracts/submit', payload)).data;
     } catch (error) {
-      if (!isBackendUnavailableError(error)) throw error;
+      if (!isBackendUnavailableError(error)) {
+        console.warn('Falling back to internal agreement submission after API error.', error);
+      }
       return (await callInternal('/api/internal/contracts/submit', { method: 'POST', body: JSON.stringify(payload) })).json();
     }
   },
@@ -67,7 +71,9 @@ export const contractApi = {
         })
       ).data as Blob;
     } catch (error) {
-      if (!isBackendUnavailableError(error)) throw error;
+      if (!isBackendUnavailableError(error)) {
+        console.warn('Falling back to internal agreement PDF generation after API error.', error);
+      }
       return await (await callInternal(`/api/internal/contracts/${agreementType}/download`)).blob();
     }
   },
