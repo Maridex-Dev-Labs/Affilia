@@ -14,27 +14,50 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
 
   const flow = searchParams.get('flow') || 'oauth';
-  const nextPath = useMemo(() => {
+  const requestedNextPath = useMemo(() => {
     const next = searchParams.get('next');
-    if (!next || !next.startsWith('/')) {
-      return flow === 'signup' ? '/onboarding/role-selection' : '/dashboard';
-    }
-    return next;
-  }, [flow, searchParams]);
+    return next && next.startsWith('/') ? next : null;
+  }, [searchParams]);
 
   useEffect(() => {
     let active = true;
 
+    const resolvePostAuthPath = async (verifiedFlow: string) => {
+      if (requestedNextPath) return requestedNextPath;
+      if (verifiedFlow === 'signup') return '/onboarding/role-selection';
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return '/dashboard';
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role,onboarding_complete')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.role || profile.onboarding_complete === false) {
+        return '/onboarding/role-selection';
+      }
+
+      return '/dashboard';
+    };
+
     const redirectAfterSuccess = async (verifiedFlow: string) => {
       if (!active) return;
-      if (verifiedFlow === 'signup') {
+      const destination = await resolvePostAuthPath(verifiedFlow);
+      const isOnboarding = destination.startsWith('/onboarding');
+
+      if (isOnboarding) {
         setMessage('Email verified. Preparing your account...');
-        router.replace(`/verify-email/success?next=${encodeURIComponent(nextPath)}`);
+        router.replace(`/verify-email/success?next=${encodeURIComponent(destination)}`);
         return;
       }
 
       setMessage('Authentication confirmed. Redirecting...');
-      router.replace(nextPath);
+      router.replace(destination);
     };
 
     const completeAuth = async () => {
@@ -89,7 +112,7 @@ export default function Page() {
     return () => {
       active = false;
     };
-  }, [flow, nextPath, router, searchParams]);
+  }, [flow, requestedNextPath, router, searchParams]);
 
   return (
     <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6 py-10">
