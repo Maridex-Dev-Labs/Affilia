@@ -18,6 +18,8 @@ export const adminApi = {
     (await adminApiClient.post(`/api/admin/billing/${profileId}/reject`, payload)).data,
   revokeBilling: async (profileId: string, payload: { reason: string }) =>
     (await adminApiClient.post(`/api/admin/billing/${profileId}/revoke`, payload)).data,
+  reactivateBilling: async (profileId: string, payload: { notes?: string }) =>
+    (await adminApiClient.post(`/api/admin/billing/${profileId}/reactivate`, payload)).data,
   sweepPreview: async () => (await adminApiClient.get('/api/admin/sweep/preview')).data,
   confirmSweep: async () => (await adminApiClient.post('/api/admin/sweep/confirm')).data,
   pendingSalesReview: async () => (await adminApiClient.get('/api/admin/sales-review/pending')).data,

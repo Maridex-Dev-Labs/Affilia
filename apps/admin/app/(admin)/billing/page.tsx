@@ -83,6 +83,18 @@ export default function Page() {
     }
   };
 
+  const reactivate = async (profileId: string) => {
+    const notes = window.prompt('Optional note for reactivating this paid package:') || undefined;
+    setError(null);
+    try {
+      await adminApi.reactivateBilling(profileId, notes ? { notes } : {});
+      await load();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to reactivate package.';
+      setError(message);
+    }
+  };
+
   if (accessLoading) return <div className="text-muted">Loading access...</div>;
   if (!can('billing.approve')) return <div className="card-surface p-6 text-sm text-muted">You do not have permission to approve billing plans.</div>;
 
@@ -104,7 +116,7 @@ export default function Page() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.profile_id} className="border-t border-soft">
+              <tr key={`${item.profile_id}-${item.plan_code}-${item.status}`} className="border-t border-soft">
                 <td className="py-3">
                   <div>{item.profiles?.business_name || item.profiles?.full_name || item.profile_id}</div>
                   <div className="text-xs text-muted">{item.profiles?.phone_number || item.payer_phone || '—'}</div>
@@ -131,9 +143,15 @@ export default function Page() {
                           Reject
                         </button>
                       </>
-                    ) : item.status === 'active' ? (
+                    ) : null}
+                    {item.status === 'active' ? (
                       <button className="text-xs border border-[#BB0000]/30 text-[#f5c2c2] rounded-full px-3 py-1" onClick={() => revoke(item.profile_id)}>
                         Revoke
+                      </button>
+                    ) : null}
+                    {item.status === 'cancelled' || item.status === 'expired' ? (
+                      <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => reactivate(item.profile_id)}>
+                        Reactivate
                       </button>
                     ) : null}
                   </div>

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user, require_admin_permission, require_any_admin_permission
 from app.db.supabase import select, update, insert
 from app.services.conversion_service import approve_conversion, reject_conversion
-from app.services.plan_service import activate_profile_plan, reject_profile_plan, revoke_profile_plan
+from app.services.plan_service import activate_profile_plan, reject_profile_plan, revoke_profile_plan, reactivate_profile_plan
 
 
 class ReviewPayload(BaseModel):
@@ -19,13 +19,20 @@ router = APIRouter()
 @router.get('/verification-queue')
 def verification_queue(user=Depends(get_current_user)):
     require_any_admin_permission(user, ['merchant.verify', 'affiliate.verify'])
-    merchant_items = select('profiles', params={'business_verified': 'eq.false', 'role': 'eq.merchant', 'select': '*'})
+    merchant_items = select(
+        'profiles',
+        params={
+            'business_verified': 'eq.false',
+            'role': 'eq.merchant',
+            'select': 'id,business_name,full_name,phone_number,business_verified,mpesa_till,documents,avatar_url,contract_status,store_description,current_agreement:current_agreement_id(id,signed_contract_storage_path,signed_contract_filename,digital_signature,acceptance_method)',
+        },
+    )
     affiliate_items = select(
         'profiles',
         params={
             'role': 'eq.affiliate',
             'affiliate_verification_status': 'in.(submitted,under_review,revision_requested,restricted_duplicate)',
-            'select': '*',
+            'select': 'id,full_name,phone_number,payout_phone,national_id_number,affiliate_verification_status,duplicate_flag_reason,affiliate_verification_notes,avatar_url,contract_status,current_agreement:current_agreement_id(id,signed_contract_storage_path,signed_contract_filename,digital_signature,acceptance_method)',
             'order': 'created_at.desc',
         },
     )
@@ -92,7 +99,7 @@ def pending_billing(user=Depends(get_current_user)):
     items = select(
         'profile_plan_selections',
         params={
-            'status': 'in.(pending_verification,active)',
+            'status': 'in.(pending_verification,active,cancelled,expired)',
             'select': '*,profiles:profile_id(full_name,business_name,phone_number,role,active_plan_code,plan_status)',
             'order': 'updated_at.desc',
         },
@@ -125,6 +132,15 @@ def revoke_billing(profile_id: str, payload: RejectionPayload, user=Depends(get_
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Active billing record not found')
     return {'status': 'revoked', 'plan': plan}
+
+
+@router.post('/billing/{profile_id}/reactivate')
+def reactivate_billing(profile_id: str, payload: ReviewPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'billing.approve')
+    plan = reactivate_profile_plan(profile_id, approver_id=user['id'], notes=payload.notes)
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Reactivatable billing record not found')
+    return {'status': 'reactivated', 'plan': plan}
 
 @router.post('/deposits/{deposit_id}/approve')
 def approve_deposit(deposit_id: str, user=Depends(get_current_user)):
