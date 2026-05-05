@@ -16,7 +16,7 @@ export default function Footer() {
         <div>
           <h4 className="mb-4 text-sm font-bold text-white">Platform</h4>
           <ul className="space-y-2 text-sm text-[#7e869a]">
-            <li><Link href="/affiliate/marketplace">Marketplace</Link></li>
+            <li><Link href="/marketplace">Marketplace</Link></li>
             <li><Link href="/signup">For Merchants</Link></li>
             <li><Link href="/signup">For Affiliates</Link></li>
           </ul>

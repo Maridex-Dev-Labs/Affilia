@@ -4,7 +4,7 @@ const links = [
   { label: 'Features', href: '/#features' },
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Testimonials', href: '/#testimonials' },
-  { label: 'Marketplace', href: '/affiliate/marketplace' },
+  { label: 'Marketplace', href: '/marketplace' },
 ];
 
 export default function NavLinks() {

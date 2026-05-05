@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import QRCode from '@/components/shared/QRCode/QRCode';
+import QRCodeGenerator from './components/QRCodeGenerator';
 import { affiliateApi } from '@/lib/api/affiliate';
 import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 import { sanitizeUserFacingError } from '@/lib/errors';
@@ -10,6 +12,7 @@ import { buildSmartLink } from '@/lib/links/smart-links';
 type LinkRow = {
   id: string;
   unique_code: string;
+  destination_url?: string | null;
   clicks: number;
   conversions: number;
   total_earned_kes: number;
@@ -18,6 +21,7 @@ type LinkRow = {
 };
 
 export default function Page() {
+  const searchParams = useSearchParams();
   const { canGenerateAffiliateLinks } = usePlanAccess();
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [status, setStatus] = useState<string | null>(null);
@@ -35,6 +39,13 @@ export default function Page() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    const created = searchParams.get('created');
+    if (created) {
+      setStatus(`Smart link ${created} is ready to share below.`);
+    }
+  }, [searchParams]);
 
   const topActiveLink = useMemo(() => links.find((link) => link.status === 'active') || links[0] || null, [links]);
 
@@ -74,6 +85,7 @@ export default function Page() {
             <tr>
               <th className="py-2">Product</th>
               <th className="py-2">Code</th>
+              <th className="py-2">URL</th>
               <th className="py-2">Clicks</th>
               <th className="py-2">Conv.</th>
               <th className="py-2">Earnings</th>
@@ -82,16 +94,28 @@ export default function Page() {
             </tr>
           </thead>
           <tbody>
-            {links.map((link) => (
+            {links.map((link) => {
+              const shareUrl = buildSmartLink(link.unique_code);
+              return (
               <tr key={link.id} className="border-t border-soft">
                 <td className="py-3">{link.products?.title || 'Product'}</td>
                 <td className="py-3 font-mono">{link.unique_code}</td>
+                <td className="py-3 max-w-[280px]">
+                  <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2 text-xs font-mono text-[#cfd5e1] break-all">
+                    {shareUrl}
+                  </div>
+                  <div className="mt-2 text-[11px] text-white/45">Redirects visitors to the public product page.</div>
+                </td>
                 <td className="py-3">{link.clicks}</td>
                 <td className="py-3">{link.conversions}</td>
                 <td className="py-3">KES {link.total_earned_kes}</td>
                 <td className="py-3 capitalize">{link.status}</td>
                 <td className="py-3">
                   <div className="flex flex-wrap gap-2">
+                    <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => navigator.clipboard.writeText(shareUrl)} type="button">
+                      Copy URL
+                    </button>
+                    <QRCodeGenerator value={shareUrl} code={link.unique_code} />
                     {link.status === 'active' ? (
                       <button className="text-xs border border-white/20 rounded-full px-3 py-1" disabled={workingLinkId === link.id} onClick={() => runAction(link.id, 'pause')}>
                         Pause
@@ -113,10 +137,11 @@ export default function Page() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {links.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-6 text-muted">
+                <td colSpan={8} className="py-6 text-muted">
                   No links yet.
                 </td>
               </tr>

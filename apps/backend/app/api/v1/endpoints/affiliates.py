@@ -87,7 +87,7 @@ def list_links(user=Depends(get_current_user)):
         'affiliate_links',
         params={
             'affiliate_id': f'eq.{profile["id"]}',
-            'select': 'id,unique_code,clicks,conversions,total_earned_kes,status,created_at,products(title)',
+            'select': 'id,unique_code,destination_url,clicks,conversions,total_earned_kes,status,created_at,products(title)',
             'order': 'created_at.desc',
         },
     )

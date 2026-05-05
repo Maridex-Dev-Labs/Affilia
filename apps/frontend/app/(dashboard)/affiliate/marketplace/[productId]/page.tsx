@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ArrowClockwise } from '@phosphor-icons/react';
 
 import { affiliateApi } from '@/lib/api/affiliate';
@@ -23,6 +23,7 @@ type ProductDetail = {
 };
 
 export default function Page() {
+  const router = useRouter();
   const params = useParams<{ productId: string }>();
   const { canGenerateAffiliateLinks, isAffiliateVerified, activePlanCode } = usePlanAccess();
   const [product, setProduct] = useState<ProductDetail | null>(null);
@@ -58,6 +59,7 @@ export default function Page() {
         throw err;
       });
       setStatus(`Smart link created: ${data.code}`);
+      window.setTimeout(() => router.push(`/affiliate/my-links?created=${encodeURIComponent(data.code)}`), 500);
     } catch (err: unknown) {
       setStatus(sanitizeUserFacingError(err, 'We could not generate a smart link right now.'));
     }

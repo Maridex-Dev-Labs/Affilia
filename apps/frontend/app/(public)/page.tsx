@@ -328,7 +328,7 @@ export default function LandingPage() {
           <p className="mx-auto mb-10 max-w-xl text-[#9ca5b9]">Join thousands of merchants and affiliates already compounding attention, trust, and conversions inside Affilia.</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <PrimaryButton href="/signup" className="mx-auto !px-12 !py-4 text-lg sm:mx-0">Create Free Account</PrimaryButton>
-            <Link href="/affiliate/marketplace" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 px-8 py-4 text-sm font-bold italic text-white hover:bg-white/5">
+            <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 px-8 py-4 text-sm font-bold italic text-white hover:bg-white/5">
               Browse Marketplace
               <CheckCircle size={18} />
             </Link>
