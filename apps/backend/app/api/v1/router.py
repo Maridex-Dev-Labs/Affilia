@@ -13,6 +13,7 @@ from .endpoints import (
     merchants,
     orders,
     products,
+    public_marketplace,
     receipts,
     tracking,
     transactions,
@@ -27,6 +28,7 @@ api_router.include_router(affiliates.router, prefix='/affiliates', tags=['Affili
 api_router.include_router(admin.router, prefix='/admin', tags=['Admin'])
 api_router.include_router(users.router, prefix='/users', tags=['Users'])
 api_router.include_router(products.router, prefix='/products', tags=['Products'])
+api_router.include_router(public_marketplace.router, prefix='/public', tags=['Public Marketplace'])
 api_router.include_router(orders.router, prefix='/orders', tags=['Orders'])
 api_router.include_router(transactions.router, prefix='/transactions', tags=['Transactions'])
 api_router.include_router(chat.router, prefix='/chat', tags=['Chat'])

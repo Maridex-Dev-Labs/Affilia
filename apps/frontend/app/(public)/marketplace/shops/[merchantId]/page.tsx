@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { notFound } from 'next/navigation';
 
 import PublicProductCard from '@/components/public/marketplace/PublicProductCard';

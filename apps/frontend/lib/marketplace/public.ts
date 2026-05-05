@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createAdminClient } from '@/lib/supabase/admin';
+const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 
 export type PublicMerchant = {
   id: string;
@@ -23,110 +23,49 @@ export type PublicProduct = {
   stock_status?: string | null;
 };
 
-function admin() {
-  return createAdminClient();
+async function fetchJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${apiBase}${path}`, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Public marketplace request failed: ${response.status}`);
+  }
+  return response.json() as Promise<T>;
 }
 
 export async function getPublicMarketplaceProducts(limit = 24): Promise<PublicProduct[]> {
-  const { data, error } = await admin()
-    .from('products')
-    .select('id,merchant_id,title,description,price_kes,commission_percent,media,images,category,stock_status')
-    .eq('is_active', true)
-    .eq('moderation_status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  return (data || []) as PublicProduct[];
+  const data = await fetchJson<{ items: PublicProduct[] }>(`/api/public/marketplace?limit=${limit}`);
+  return data.items || [];
 }
 
 export async function getPublicProduct(productId: string): Promise<PublicProduct | null> {
-  const { data, error } = await admin()
-    .from('products')
-    .select('id,merchant_id,title,description,price_kes,commission_percent,media,images,category,stock_status')
-    .eq('id', productId)
-    .eq('is_active', true)
-    .eq('moderation_status', 'approved')
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const data = await fetchJson<{ product: PublicProduct }>(`/api/public/marketplace/products/${productId}`);
+    return data.product || null;
+  } catch {
+    return null;
   }
-  return (data as PublicProduct | null) || null;
 }
 
 export async function getPublicMerchant(merchantId: string): Promise<PublicMerchant | null> {
-  const { data, error } = await admin()
-    .from('profiles')
-    .select('id,business_name,full_name,store_description,avatar_url')
-    .eq('id', merchantId)
-    .eq('role', 'merchant')
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const data = await fetchJson<{ merchant: PublicMerchant; products: PublicProduct[] }>(`/api/public/marketplace/shops/${merchantId}`);
+    return data.merchant || null;
+  } catch {
+    return null;
   }
-  return (data as PublicMerchant | null) || null;
 }
 
 export async function getRelatedMarketplaceProducts(input: { excludeId: string; merchantId: string; category?: string | null; limit?: number }): Promise<PublicProduct[]> {
-  const supabase = admin();
-  const limit = input.limit || 8;
-
-  let query = supabase
-    .from('products')
-    .select('id,merchant_id,title,description,price_kes,commission_percent,media,images,category,stock_status')
-    .eq('is_active', true)
-    .eq('moderation_status', 'approved')
-    .neq('id', input.excludeId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (input.category) {
-    query = query.eq('category', input.category);
-  } else {
-    query = query.eq('merchant_id', input.merchantId);
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    throw new Error(error.message);
-  }
-  let items = (data || []) as PublicProduct[];
-
-  if (items.length < limit && input.category) {
-    const { data: fallback, error: fallbackError } = await supabase
-      .from('products')
-      .select('id,merchant_id,title,description,price_kes,commission_percent,media,images,category,stock_status')
-      .eq('is_active', true)
-      .eq('moderation_status', 'approved')
-      .eq('merchant_id', input.merchantId)
-      .neq('id', input.excludeId)
-      .order('created_at', { ascending: false })
-      .limit(limit - items.length);
-    if (!fallbackError) {
-      const existing = new Set(items.map((item) => item.id));
-      items = items.concat(((fallback || []) as PublicProduct[]).filter((item) => !existing.has(item.id)));
-    }
-  }
-
-  return items;
+  const product = await getPublicProduct(input.excludeId);
+  const data = product ? await fetchJson<{ product: PublicProduct; merchant: PublicMerchant | null; related: PublicProduct[] }>(`/api/public/marketplace/products/${input.excludeId}`) : null;
+  const related = data?.related || [];
+  return related.slice(0, input.limit || 8);
 }
 
-export async function getMerchantCatalog(merchantId: string, limit = 24): Promise<PublicProduct[]> {
-  const { data, error } = await admin()
-    .from('products')
-    .select('id,merchant_id,title,description,price_kes,commission_percent,media,images,category,stock_status')
-    .eq('merchant_id', merchantId)
-    .eq('is_active', true)
-    .eq('moderation_status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    throw new Error(error.message);
+export async function getMerchantCatalog(merchantId: string, _limit = 24): Promise<PublicProduct[]> {
+  try {
+    const data = await fetchJson<{ merchant: PublicMerchant; products: PublicProduct[] }>(`/api/public/marketplace/shops/${merchantId}`);
+    return data.products || [];
+  } catch {
+    return [];
   }
-  return (data || []) as PublicProduct[];
 }
