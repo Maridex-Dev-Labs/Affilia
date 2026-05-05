@@ -8,7 +8,6 @@ import { uploadSignedAgreement, createSignedStorageUrl } from '@/lib/supabase/st
 import { useAuth } from '@/lib/hooks/useAuth';
 import { contractMeta, type AgreementType } from '@/lib/legal/contracts';
 import { sanitizeUserFacingError } from '@/lib/errors';
-import { generateAgreementPdfFallback, submitAgreementClientFallback } from '@/lib/legal/contracts-client-fallback';
 
 const badgeStyles: Record<string, string> = {
   pending: 'bg-white/10 text-white',
@@ -76,7 +75,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
   const downloadTemplate = async () => {
     setError(null);
     try {
-      const blob = mode === 'onboarding' ? await generateAgreementPdfFallback(agreementType) : await contractApi.downloadTemplate(agreementType);
+      const blob = await contractApi.downloadTemplate(agreementType);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -138,7 +137,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
         signed_contract_size_bytes: acceptanceMethod === 'uploaded_pdf' ? signedSize : null,
         signed_contract_mime_type: acceptanceMethod === 'uploaded_pdf' ? signedType : null,
       };
-      const response = mode === 'onboarding' ? await submitAgreementClientFallback(payload) : await contractApi.submit(payload);
+      const response = await contractApi.submit(payload);
       setCurrent(response.agreement);
       setContractStatus(response.agreement?.status || 'under_review');
       setStatusMessage('Agreement submitted. It is now waiting for admin review.');
