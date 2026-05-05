@@ -16,8 +16,8 @@ export default function Navbar() {
       <div className="kenya-flag-gradient px-4 py-1.5 text-[11px] font-semibold text-white md:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <div className="flex gap-4">
-            <span className="flex items-center gap-1"><Phone size={12} /> +254 700 000 000</span>
-            <span className="hidden items-center gap-1 sm:flex"><EnvelopeSimple size={12} /> hello<span>@</span>affilia.co.ke</span>
+            <span className="flex items-center gap-1"><Phone size={12} /> +254742972001</span>
+            <span className="hidden items-center gap-1 sm:flex"><EnvelopeSimple size={12} /> affilia-support<span>@</span>gmail.com</span>
           </div>
           <span className="hidden items-center gap-1 sm:flex"><MapPin size={12} /> Nakuru, KE</span>
         </div>
