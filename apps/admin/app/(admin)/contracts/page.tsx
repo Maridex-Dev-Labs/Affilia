@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
-import { supabase } from '@/lib/supabase/admin-client';
+import { openDocumentViewer } from '@/lib/documents/openDocument';
 
 const actionMeta = {
   approve: { label: 'Approve', className: 'bg-[#009A44] text-white' },
@@ -60,15 +60,6 @@ export default function Page() {
     }
   };
 
-  const openSignedCopy = async () => {
-    if (!selected?.signed_contract_storage_path) return;
-    const { data, error } = await supabase.storage.from('legal-agreements').createSignedUrl(selected.signed_contract_storage_path, 60);
-    if (error) {
-      setStatus(error.message);
-      return;
-    }
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <div className="space-y-6">
@@ -164,7 +155,7 @@ export default function Page() {
               {selected.digital_signature ? (
                 <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
                   <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#8f98ab]">Digital Signature</div>
-                  <img src={selected.digital_signature} alt="Digital signature" className="mt-4 h-36 w-full rounded-2xl border border-white/8 object-contain bg-[#0A0E17] p-3" />
+                  <button type="button" onClick={() => openDocumentViewer({ url: selected.digital_signature, name: 'digital-signature.png' })} className="mt-4 block w-full rounded-2xl border border-white/8 bg-[#0A0E17] p-3 text-left"><img src={selected.digital_signature} alt="Digital signature" className="h-36 w-full object-contain" /></button>
                 </div>
               ) : null}
 
@@ -175,7 +166,7 @@ export default function Page() {
                       <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#8f98ab]">Uploaded Contract</div>
                       <div className="mt-2 text-sm text-[#d8deea]">{selected.signed_contract_filename || 'Signed contract copy'}</div>
                     </div>
-                    <button className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white" onClick={openSignedCopy}>Open File</button>
+                    <button className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white" onClick={() => openDocumentViewer({ bucket: 'legal-agreements', path: selected.signed_contract_storage_path, name: selected.signed_contract_filename || 'signed-agreement.pdf' })}>Open File</button>
                   </div>
                 </div>
               ) : null}

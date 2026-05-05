@@ -21,46 +21,65 @@ function labelFromPath(path: string) {
   return decodeURIComponent(segment);
 }
 
+function getMimeType(value: string) {
+  if (value.startsWith('data:')) {
+    const match = value.match(/^data:([^;,]+)/i);
+    return match?.[1].toLowerCase() || '';
+  }
+  return '';
+}
+
 export default function Page() {
   const searchParams = useSearchParams();
   const bucket = searchParams.get('bucket') || '';
   const path = searchParams.get('path') || '';
-  const name = searchParams.get('name') || labelFromPath(path || 'document');
+  const rawUrl = searchParams.get('url') || '';
+  const name = searchParams.get('name') || labelFromPath(path || rawUrl || 'document');
 
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [textPreview, setTextPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const extension = useMemo(() => getExtension(name || path), [name, path]);
+  const extension = useMemo(() => getExtension(name || path || rawUrl), [name, path, rawUrl]);
+  const mimeType = useMemo(() => getMimeType(rawUrl), [rawUrl]);
+  const isPdf = extension === 'pdf' || mimeType === 'application/pdf';
+  const isImage = IMAGE_EXTENSIONS.has(extension) || mimeType.startsWith('image/');
+  const isText = TEXT_EXTENSIONS.has(extension) || mimeType.startsWith('text/');
+  const isOffice = OFFICE_EXTENSIONS.has(extension);
 
   useEffect(() => {
     const load = async () => {
-      if (!bucket || !path) {
-        setError('Missing storage bucket or document path.');
+      if (!rawUrl && (!bucket || !path)) {
+        setError('Missing document URL or storage location.');
         setLoading(false);
         return;
       }
 
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        if (!token) throw new Error('Admin session unavailable.');
+        let resolvedUrl = rawUrl;
+        if (!resolvedUrl) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          if (!token) throw new Error('Admin session unavailable.');
 
-        const response = await fetch('/api/verification-assets/sign', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ bucket, path, expiresIn: 300 }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to sign document.');
-        setSignedUrl(data.signedUrl);
+          const response = await fetch('/api/verification-assets/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ bucket, path, expiresIn: 300 }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to sign document.');
+          resolvedUrl = data.signedUrl;
+        }
 
-        if (TEXT_EXTENSIONS.has(extension)) {
-          const previewResponse = await fetch(data.signedUrl);
+        setSignedUrl(resolvedUrl);
+
+        if (isText) {
+          const previewResponse = await fetch(resolvedUrl);
           const previewText = await previewResponse.text();
           setTextPreview(previewText);
         }
@@ -72,7 +91,7 @@ export default function Page() {
     };
 
     void load();
-  }, [bucket, extension, path]);
+  }, [bucket, isText, path, rawUrl]);
 
   const officeViewerUrl = signedUrl ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(signedUrl)}` : null;
 
@@ -105,11 +124,11 @@ export default function Page() {
 
       {!loading && !error && signedUrl ? (
         <div className="card-surface min-h-[70vh] p-4">
-          {extension === 'pdf' ? <iframe title={name} src={signedUrl} className="h-[75vh] w-full rounded-2xl border border-white/10 bg-white" /> : null}
-          {IMAGE_EXTENSIONS.has(extension) ? <img src={signedUrl} alt={name} className="mx-auto max-h-[75vh] rounded-2xl border border-white/10 object-contain" /> : null}
-          {TEXT_EXTENSIONS.has(extension) ? <pre className="max-h-[75vh] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-5 text-sm text-[#d8deea]">{textPreview}</pre> : null}
-          {OFFICE_EXTENSIONS.has(extension) && officeViewerUrl ? <iframe title={name} src={officeViewerUrl} className="h-[75vh] w-full rounded-2xl border border-white/10 bg-white" /> : null}
-          {!IMAGE_EXTENSIONS.has(extension) && !TEXT_EXTENSIONS.has(extension) && !OFFICE_EXTENSIONS.has(extension) && extension !== 'pdf' ? (
+          {isPdf ? <iframe title={name} src={signedUrl} className="h-[75vh] w-full rounded-2xl border border-white/10 bg-white" /> : null}
+          {isImage ? <img src={signedUrl} alt={name} className="mx-auto max-h-[75vh] rounded-2xl border border-white/10 object-contain" /> : null}
+          {isText ? <pre className="max-h-[75vh] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-5 text-sm text-[#d8deea]">{textPreview}</pre> : null}
+          {isOffice && officeViewerUrl ? <iframe title={name} src={officeViewerUrl} className="h-[75vh] w-full rounded-2xl border border-white/10 bg-white" /> : null}
+          {!isImage && !isText && !isOffice && !isPdf ? (
             <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center text-sm text-muted">
               <p>This document type cannot be rendered inline in the browser viewer.</p>
               <p>Use <span className="text-white">Open Raw File</span> or <span className="text-white">Download</span> to inspect the full file.</p>

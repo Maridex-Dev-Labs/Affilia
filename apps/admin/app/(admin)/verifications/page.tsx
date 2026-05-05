@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { adminApi } from '@/lib/api/admin';
-import { supabase } from '@/lib/supabase/admin-client';
 import { useAdminAccess } from '@/lib/hooks/useAdminAccess';
-import { openSignedDocument } from '@/lib/documents/openDocument';
+import { openDocumentViewer } from '@/lib/documents/openDocument';
 
 type AgreementSummary = {
   id?: string;
@@ -43,18 +42,6 @@ type AffiliateVerificationItem = {
   current_agreement?: AgreementSummary | null;
 };
 
-function extractBucketPath(bucket: string, value?: string | null) {
-  if (!value) return null;
-  if (!value.startsWith('http')) return value;
-  try {
-    const url = new URL(value);
-    const segments = url.pathname.split(`/${bucket}/`);
-    if (segments.length < 2) return null;
-    return decodeURIComponent(segments[1]);
-  } catch {
-    return null;
-  }
-}
 
 export default function Page() {
   const { can, loading: accessLoading } = useAdminAccess();
@@ -114,44 +101,18 @@ export default function Page() {
     }
   };
 
-  const openSignedAsset = async (bucket: string, rawPath: string) => {
-    const path = extractBucketPath(bucket, rawPath) || rawPath;
-    setStatus(null);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Admin session unavailable.');
-      const response = await fetch('/api/verification-assets/sign', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ bucket, path, expiresIn: 120 }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to open document.');
-      openSignedDocument(data.signedUrl, path);
-    } catch (err: unknown) {
-      if (rawPath.startsWith('http')) {
-        window.open(rawPath, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      setStatus(err instanceof Error ? err.message : 'Failed to open document.');
-    }
-  };
 
   const renderAgreementActions = (agreement?: AgreementSummary | null) => {
     if (!agreement) return <span className="text-xs text-muted">No agreement submission</span>;
     return (
       <div className="flex flex-wrap gap-2">
         {agreement.digital_signature ? (
-          <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => window.open(agreement.digital_signature || '', '_blank', 'noopener,noreferrer')}>
+          <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ url: agreement.digital_signature || '', name: 'digital-signature.png' })}>
             View Signature
           </button>
         ) : null}
         {agreement.signed_contract_storage_path ? (
-          <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openSignedAsset('legal-agreements', agreement.signed_contract_storage_path!)}>
+          <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ bucket: 'legal-agreements', path: agreement.signed_contract_storage_path!, name: agreement.signed_contract_filename || 'signed-agreement.pdf' })}>
             View Agreement PDF
           </button>
         ) : null}
@@ -198,7 +159,7 @@ export default function Page() {
                       <div className="mt-1 text-xs text-muted">Status: {m.contract_status || 'under_review'}</div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {m.avatar_url ? (
-                          <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => window.open(m.avatar_url || '', '_blank', 'noopener,noreferrer')}>
+                          <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ url: m.avatar_url || '', name: `${(m.business_name || m.full_name || 'merchant').replace(/\s+/g, '-').toLowerCase()}-avatar` })}>
                             View Avatar
                           </button>
                         ) : null}
@@ -207,7 +168,7 @@ export default function Page() {
                     <td className="py-3">{m.phone_number || '—'}</td>
                     <td className="py-3">
                       {registrationPath ? (
-                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openSignedAsset('merchant-docs', registrationPath)}>
+                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ bucket: 'merchant-docs', path: registrationPath, name: 'business-registration' })}>
                           View Business Doc
                         </button>
                       ) : (
@@ -256,7 +217,7 @@ export default function Page() {
             <tbody>
               {affiliates.map((affiliate) => (
                 <tr key={affiliate.id} className="border-t border-soft align-top">
-                  <td className="py-3">{affiliate.full_name || affiliate.id}</td>
+                  <td className="py-3"><Link className="underline" href={`/verifications/affiliates/${affiliate.id}`}>{affiliate.full_name || affiliate.id}</Link></td>
                   <td className="py-3">
                     <div>{affiliate.phone_number || '—'}</div>
                     <div className="text-xs text-muted">Payout: {affiliate.payout_phone || '—'}</div>
@@ -265,7 +226,7 @@ export default function Page() {
                   <td className="py-3">
                     <div className="flex flex-wrap gap-2">
                       {affiliate.avatar_url ? (
-                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => window.open(affiliate.avatar_url || '', '_blank', 'noopener,noreferrer')}>
+                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ url: affiliate.avatar_url || '', name: `${(affiliate.full_name || 'affiliate').replace(/\s+/g, '-').toLowerCase()}-avatar` })}>
                           View Avatar
                         </button>
                       ) : null}

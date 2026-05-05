@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
 import { supabase } from '@/lib/supabase/admin-client';
-import { openSignedDocument } from '@/lib/documents/openDocument';
+import { openDocumentViewer } from '@/lib/documents/openDocument';
 
 type MerchantDetail = {
   id: string;
@@ -24,18 +24,6 @@ type MerchantDetail = {
   } | null;
 };
 
-function extractBucketPath(bucket: string, value?: string | null) {
-  if (!value) return null;
-  if (!value.startsWith('http')) return value;
-  try {
-    const url = new URL(value);
-    const segments = url.pathname.split(`/${bucket}/`);
-    if (segments.length < 2) return null;
-    return decodeURIComponent(segments[1]);
-  } catch {
-    return null;
-  }
-}
 
 export default function Page() {
   const params = useParams<{ merchantId: string }>();
@@ -57,32 +45,6 @@ export default function Page() {
       });
   }, [params.merchantId]);
 
-  const openSignedAsset = async (bucket: string, rawPath: string) => {
-    const path = extractBucketPath(bucket, rawPath) || rawPath;
-    setStatus(null);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Admin session unavailable.');
-      const response = await fetch('/api/verification-assets/sign', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ bucket, path, expiresIn: 120 }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to open document.');
-      openSignedDocument(data.signedUrl, path);
-    } catch (err: unknown) {
-      if (rawPath.startsWith('http')) {
-        window.open(rawPath, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      setStatus(err instanceof Error ? err.message : 'Failed to open document.');
-    }
-  };
 
   if (!merchant) return <div className="text-muted">Loading...</div>;
 
@@ -110,7 +72,7 @@ export default function Page() {
               <p>Contract Status: {merchant.contract_status || 'under_review'}</p>
             </div>
           </div>
-          {merchant.avatar_url ? <img src={merchant.avatar_url} alt="Merchant avatar" className="h-32 w-32 rounded-3xl object-cover border border-white/10" /> : null}
+          {merchant.avatar_url ? <button type="button" className="block" onClick={() => openDocumentViewer({ url: merchant.avatar_url || '', name: 'merchant-avatar' })}><img src={merchant.avatar_url} alt="Merchant avatar" className="h-32 w-32 rounded-3xl object-cover border border-white/10" /></button> : null}
         </div>
 
         <div className="card-surface p-6 space-y-5">
@@ -123,19 +85,19 @@ export default function Page() {
             <div className="text-xs uppercase tracking-[0.18em] text-white/45">Submitted Documents</div>
             <div className="mt-3 flex flex-wrap gap-3">
               {registrationPath ? (
-                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openSignedAsset('merchant-docs', registrationPath)}>
+                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openDocumentViewer({ bucket: 'merchant-docs', path: registrationPath, name: 'business-registration' })}>
                   Open Business Registration
                 </button>
               ) : (
                 <span className="text-sm text-muted">No business document uploaded.</span>
               )}
               {merchant.current_agreement?.signed_contract_storage_path ? (
-                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openSignedAsset('legal-agreements', merchant.current_agreement?.signed_contract_storage_path || '')}>
+                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openDocumentViewer({ bucket: 'legal-agreements', path: merchant.current_agreement?.signed_contract_storage_path || '', name: merchant.current_agreement?.signed_contract_filename || 'signed-agreement.pdf' })}>
                   Open Agreement PDF
                 </button>
               ) : null}
               {merchant.current_agreement?.digital_signature ? (
-                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => window.open(merchant.current_agreement?.digital_signature || '', '_blank', 'noopener,noreferrer')}>
+                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openDocumentViewer({ url: merchant.current_agreement?.digital_signature || '', name: 'digital-signature.png' })}>
                   View Signature
                 </button>
               ) : null}
