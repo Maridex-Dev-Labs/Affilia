@@ -16,7 +16,6 @@ export default function PublicProductCard({ product, href }: { product: PublicPr
         <div className="flex items-end justify-between gap-3">
           <div>
             <div className="text-lg font-black text-white">KES {Number(product.price_kes || 0).toLocaleString()}</div>
-            <div className="text-xs text-[#009A44]">Earn {Number(product.commission_percent || 0)}% commission</div>
           </div>
           <Link className="rounded-full border border-white/20 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/5" href={href || `/marketplace/products/${product.id}`}>
             View Product

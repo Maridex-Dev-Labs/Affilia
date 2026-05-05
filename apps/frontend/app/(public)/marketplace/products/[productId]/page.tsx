@@ -54,10 +54,6 @@ export default async function PublicProductDetailPage({
                 <div className="text-sm text-muted">Price</div>
                 <div className="mt-2 text-4xl font-black">KES {Number(product.price_kes || 0).toLocaleString()}</div>
               </div>
-              <div>
-                <div className="text-sm text-muted">Affiliate commission</div>
-                <div className="mt-2 text-2xl font-bold text-[#009A44]">{Number(product.commission_percent || 0)}%</div>
-              </div>
               <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#d4dbe7]">
                 Public product page only. Buyers can inspect the listing and the shop. Checkout and sale verification still happen through the merchant's normal fulfilment flow.
               </div>
