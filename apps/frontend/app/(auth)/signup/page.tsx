@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { buildAuthRedirect } from '@/lib/auth/redirects';
 import { supabase } from '@/lib/supabase/client';
@@ -16,12 +16,30 @@ export default function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [oauthProvider, setOauthProvider] = useState<'google' | 'azure' | null>(null);
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const passwordValid = password.length >= 8;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+  const canSubmit = useMemo(() => emailValid && passwordValid && !isSubmitting, [emailValid, passwordValid, isSubmitting]);
+
   const signUp = async () => {
     if (isSubmitting) return;
+    if (!normalizedEmail) {
+      setError('Enter your email address to create an account.');
+      return;
+    }
+    if (!emailValid) {
+      setError('Enter a valid email address.');
+      return;
+    }
+    if (!passwordValid) {
+      setError('Use at least 8 characters for your password.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
     const { data, error: err } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         emailRedirectTo: buildAuthRedirect('/auth/callback?flow=signup&next=/onboarding/role-selection'),
@@ -31,7 +49,9 @@ export default function Page() {
       setError(
         /failed to send confirmation email/i.test(err.message)
           ? 'We could not send the confirmation email right now. Please try again shortly.'
-          : err.message,
+          : /anonymous sign-ins are disabled/i.test(err.message)
+            ? 'Enter a valid email address and password before creating your account.'
+            : err.message,
       );
       setIsSubmitting(false);
       return;
@@ -39,7 +59,7 @@ export default function Page() {
     if (data.session) {
       router.push('/onboarding/role-selection');
     } else {
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
     }
   };
 
@@ -67,10 +87,10 @@ export default function Page() {
         <p className="text-muted mt-2">Create your account in under two minutes, or continue with your existing Google or Microsoft identity.</p>
 
         <div className="mt-6 space-y-4">
-          <input className="input-shell" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input className="input-shell" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input className="input-shell" placeholder="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="input-shell" placeholder="Password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           {error ? <p className="text-xs text-red-400">{error}</p> : null}
-          <PrimaryButton className="w-full justify-center" loading={isSubmitting} loadingText="Creating account..." onClick={signUp}>
+          <PrimaryButton className="w-full justify-center" disabled={!canSubmit} loading={isSubmitting} loadingText="Creating account..." onClick={signUp}>
             Create Account
           </PrimaryButton>
           <div className="grid gap-2">
