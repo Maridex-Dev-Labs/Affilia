@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { buildPublicProductLink } from '@/lib/links/smart-links';
 
 function serviceRoleHeaders() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,7 +21,7 @@ export async function resolveLinkViaSupabase(code: string) {
   if (!config) return null;
 
   const response = await fetch(
-    `${config.supabaseUrl}/rest/v1/affiliate_links?unique_code=eq.${encodeURIComponent(code)}&select=id,destination_url&limit=1`,
+    `${config.supabaseUrl}/rest/v1/affiliate_links?unique_code=eq.${encodeURIComponent(code)}&select=id,destination_url,product_id,unique_code&limit=1`,
     {
       headers: config.headers,
       cache: 'no-store',
@@ -28,8 +29,13 @@ export async function resolveLinkViaSupabase(code: string) {
   );
 
   if (!response.ok) return null;
-  const rows = (await response.json()) as Array<{ id: string; destination_url: string }>;
-  return rows[0] || null;
+  const rows = (await response.json()) as Array<{ id: string; destination_url: string; product_id?: string; unique_code?: string }>;
+  const row = rows[0] || null;
+  if (!row) return null;
+  if (row.product_id && (!row.destination_url || row.destination_url.endsWith(`/r/${row.unique_code}`))) {
+    row.destination_url = buildPublicProductLink(row.product_id, row.unique_code);
+  }
+  return row;
 }
 
 export async function recordClickViaSupabase(linkId: string, request: NextRequest, utm?: URLSearchParams) {

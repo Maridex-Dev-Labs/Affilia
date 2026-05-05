@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { buildPublicProductLink } from '@/lib/links/smart-links';
 
 function toNumber(value: unknown) {
   const parsed = Number(value ?? 0);
@@ -107,7 +108,7 @@ export async function generateAffiliateLinkFallback(productId: string) {
   }
 
   const code = `${userId.slice(0, 4)}-${Math.random().toString(16).slice(2, 8)}`.toUpperCase();
-  const destinationUrl = `${window.location.origin}/r/${code}`;
+  const destinationUrl = buildPublicProductLink(productId, code);
   const { error } = await supabase.from('affiliate_links').insert({
     affiliate_id: userId,
     product_id: productId,

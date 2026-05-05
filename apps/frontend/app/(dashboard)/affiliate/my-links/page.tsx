@@ -5,6 +5,7 @@ import QRCode from '@/components/shared/QRCode/QRCode';
 import { affiliateApi } from '@/lib/api/affiliate';
 import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 import { sanitizeUserFacingError } from '@/lib/errors';
+import { buildSmartLink } from '@/lib/links/smart-links';
 
 type LinkRow = {
   id: string;
@@ -35,7 +36,7 @@ export default function Page() {
     void load();
   }, []);
 
-  const topActiveLink = useMemo(() => links.find((link) => link.status === 'active') || links[0], [links]);
+  const topActiveLink = useMemo(() => links.find((link) => link.status === 'active') || links[0] || null, [links]);
 
   const runAction = async (linkId: string, action: 'pause' | 'resume' | 'archive' | 'delete') => {
     setStatus(null);
@@ -128,7 +129,14 @@ export default function Page() {
         <h3 className="text-lg font-bold">Quick QR</h3>
         <p className="text-muted text-sm mt-2">Share your top active link instantly. Merchants can also use the visible code for offline/manual sale attribution.</p>
         <div className="mt-4">
-          <QRCode value={`https://affilia.vercel.app/r/${topActiveLink?.unique_code || ''}`} />
+          {topActiveLink ? (
+            <div className="space-y-3">
+              <QRCode value={buildSmartLink(topActiveLink.unique_code)} />
+              <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-xs font-mono text-[#cfd5e1]">{buildSmartLink(topActiveLink.unique_code)}</div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-6 text-sm text-muted">Generate your first active link from the affiliate marketplace to unlock QR sharing.</div>
+          )}
         </div>
       </div>
     </div>

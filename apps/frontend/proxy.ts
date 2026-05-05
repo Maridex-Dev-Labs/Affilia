@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordClickViaSupabase, resolveLinkViaSupabase } from '@/lib/server/tracking-fallback';
+import { normalizeRedirectTarget } from '@/lib/server/smart-link-redirect';
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -35,8 +36,9 @@ export async function proxy(request: NextRequest) {
       const resolve = await fetch(`${apiUrl}/api/track/resolve?code=${code}`);
       if (resolve.ok) {
         const data = await resolve.json();
-        if (data?.destination_url) {
-          return NextResponse.redirect(data.destination_url, { status: 302 });
+        const redirectTarget = normalizeRedirectTarget(data?.destination_url, request.url);
+        if (redirectTarget) {
+          return NextResponse.redirect(redirectTarget, { status: 302 });
         }
       }
     } catch (err) {
@@ -46,9 +48,10 @@ export async function proxy(request: NextRequest) {
 
   try {
     const link = await resolveLinkViaSupabase(code);
-    if (link?.destination_url) {
+    const redirectTarget = normalizeRedirectTarget(link?.destination_url, request.url);
+    if (link && redirectTarget) {
       await recordClickViaSupabase(link.id, request, url.searchParams);
-      return NextResponse.redirect(link.destination_url, { status: 302 });
+      return NextResponse.redirect(redirectTarget, { status: 302 });
     }
   } catch (_error) {
     // ignore and use final fallback

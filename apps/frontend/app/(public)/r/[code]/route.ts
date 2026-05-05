@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordClickViaSupabase, resolveLinkViaSupabase } from '@/lib/server/tracking-fallback';
-
-function getSafeRedirectTarget(value: string | null | undefined) {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return null;
-    }
-    return parsed.toString();
-  } catch {
-    return null;
-  }
-}
+import { normalizeRedirectTarget } from '@/lib/server/smart-link-redirect';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -29,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const res = await fetch(`${apiUrl}/api/track/resolve?code=${code}`);
       if (res.ok) {
         const data = await res.json();
-        const redirectTarget = getSafeRedirectTarget(data?.destination_url);
+        const redirectTarget = normalizeRedirectTarget(data?.destination_url, request.url);
         if (redirectTarget) {
           return NextResponse.redirect(redirectTarget, { status: 302 });
         }
@@ -41,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const link = await resolveLinkViaSupabase(code);
-    const redirectTarget = getSafeRedirectTarget(link?.destination_url);
+    const redirectTarget = normalizeRedirectTarget(link?.destination_url, request.url);
     if (link && redirectTarget) {
       await recordClickViaSupabase(link.id, request, request.nextUrl.searchParams);
       return NextResponse.redirect(redirectTarget, { status: 302 });

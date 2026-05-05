@@ -6,6 +6,14 @@ from app.db.supabase import select, insert, update
 
 router = APIRouter()
 
+def _resolved_destination(link: dict) -> str:
+    destination = (link.get('destination_url') or '').strip()
+    code = link.get('unique_code')
+    product_id = link.get('product_id')
+    if product_id and (not destination or destination.endswith(f'/r/{code}')):
+        return f"{settings.APP_URL}/marketplace/products/{product_id}?ref={code}"
+    return destination or settings.APP_URL
+
 class ClickPayload(BaseModel):
     code: str
     ip: str | None = None
@@ -38,4 +46,4 @@ def resolve(code: str):
     links = select('affiliate_links', params={'unique_code': f'eq.{code}', 'status': 'eq.active', 'select': '*', 'limit': 1})
     if not links:
         return {'destination_url': settings.APP_URL}
-    return {'destination_url': links[0].get('destination_url')}
+    return {'destination_url': _resolved_destination(links[0])}

@@ -180,10 +180,10 @@ def generate_link(payload: LinkPayload, user=Depends(get_current_user)):
             'product_id': payload.product_id,
             'unique_code': code,
             'link_type': 'smart_link',
-            'destination_url': f"{settings.APP_URL}/r/{code}",
+            'destination_url': f"{settings.APP_URL}/marketplace/products/{payload.product_id}?ref={code}",
         },
     )
-    return {'code': code, 'destination_url': f"{settings.APP_URL}/r/{code}"}
+    return {'code': code, 'destination_url': f"{settings.APP_URL}/marketplace/products/{payload.product_id}?ref={code}"}
 
 
 @router.post('/links/{link_id}/pause')

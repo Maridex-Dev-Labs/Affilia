@@ -1,7 +1,7 @@
 const path = require('path');
 
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL || 'https://affilia-api.onrender.com';
-const appOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://affilia.vercel.app';
+const appOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://affilia-ke.vercel.app';
 const adminOrigin = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://sys-ctrl-ad-aff.vercel.app';
 const connectSrc = [
   "'self'",
