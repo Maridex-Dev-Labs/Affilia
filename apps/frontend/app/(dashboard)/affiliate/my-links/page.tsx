@@ -31,6 +31,9 @@ export default function Page() {
     try {
       const data = await affiliateApi.links();
       setLinks(data.items || []);
+      if (!searchParams.get('created')) {
+        setStatus(null);
+      }
     } catch (error: unknown) {
       setStatus(sanitizeUserFacingError(error, 'We could not load your tracking links right now.'));
     }

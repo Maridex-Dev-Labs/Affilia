@@ -87,11 +87,29 @@ def list_links(user=Depends(get_current_user)):
         'affiliate_links',
         params={
             'affiliate_id': f'eq.{profile["id"]}',
-            'select': 'id,unique_code,destination_url,clicks,conversions,total_earned_kes,status,created_at,products(title)',
+            'select': 'id,product_id,unique_code,destination_url,clicks,conversions,total_earned_kes,status,created_at',
             'order': 'created_at.desc',
         },
     )
-    return {'items': items}
+    product_ids = [row.get('product_id') for row in items if row.get('product_id')]
+    product_map = {}
+    if product_ids:
+        products = select(
+            'products',
+            params={
+                'id': f"in.({','.join(product_ids)})",
+                'select': 'id,title',
+            },
+        )
+        product_map = {product.get('id'): product for product in products}
+
+    normalized = []
+    for row in items:
+        normalized.append({
+            **row,
+            'products': product_map.get(row.get('product_id')),
+        })
+    return {'items': normalized}
 
 
 @router.post('/verification/submit')
