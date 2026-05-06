@@ -237,8 +237,10 @@ def record_affiliate_sale(product_id: str, payload: ManualSalePayload, user=Depe
     if duplicate:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='This customer or order reference has already been submitted.')
 
-    order_value = payload.sale_amount_kes
-    commission = round(order_value * _to_number(product.get('commission_percent')) / 100, 2)
+    unit_sale_amount = payload.sale_amount_kes
+    order_value = round(unit_sale_amount * payload.quantity, 2)
+    commission_percent = _to_number(product.get('commission_percent'))
+    commission = round(order_value * commission_percent / 100, 2)
     platform_fee = round(commission * 0.1, 2)
     reserve_merchant_commission(profile['id'], commission)
 
@@ -271,6 +273,10 @@ def record_affiliate_sale(product_id: str, payload: ManualSalePayload, user=Depe
         'status': 'submitted',
         'conversion': conversion,
         'commission_kes': commission,
+        'commission_percent': commission_percent,
+        'order_value_kes': order_value,
+        'unit_sale_amount_kes': unit_sale_amount,
+        'quantity': payload.quantity,
         'platform_fee_kes': platform_fee,
         'affiliate_id': affiliate['id'],
         'affiliate_name': affiliate.get('full_name') or affiliate.get('business_name') or affiliate['id'],

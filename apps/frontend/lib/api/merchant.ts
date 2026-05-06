@@ -1,4 +1,5 @@
-import { apiClient } from './client';
+import { BackendUnavailableError, apiClient } from './client';
+import { supabase } from '@/lib/supabase/client';
 
 type CreateProductPayload = {
   title: string;
@@ -29,6 +30,35 @@ export const merchantApi = {
   escrow: async () => (await apiClient.get('/api/merchants/escrow')).data,
   createProduct: async (payload: CreateProductPayload) => (await apiClient.post('/api/merchants/products', payload)).data,
   deposit: async (payload: DepositPayload) => (await apiClient.post('/api/merchants/deposit', payload)).data,
-  recordAffiliateSale: async (productId: string, payload: ManualSalePayload) =>
-    (await apiClient.post(`/api/merchants/products/${productId}/record-sale`, payload)).data,
+  recordAffiliateSale: async (productId: string, payload: ManualSalePayload) => {
+    try {
+      return (await apiClient.post(`/api/merchants/products/${productId}/record-sale`, payload)).data;
+    } catch (error) {
+      if (!(error instanceof BackendUnavailableError) && !(error instanceof Error && error.message === 'This workspace is temporarily unavailable. Please try again later.')) {
+        throw error;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        throw error;
+      }
+
+      const response = await fetch('/api/internal/merchant-sales', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof body.detail === 'string' ? body.detail : 'We could not submit the affiliate sale right now.');
+      }
+
+      return body;
+    }
+  },
 };

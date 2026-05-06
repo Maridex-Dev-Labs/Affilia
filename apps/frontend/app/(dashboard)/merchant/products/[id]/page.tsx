@@ -29,9 +29,35 @@ export default function Page() {
   const [saleStatus, setSaleStatus] = useState<string | null>(null);
   const [submittingSale, setSubmittingSale] = useState(false);
 
+  const unitSaleAmount = useMemo(() => {
+    const parsed = Number(saleForm.sale_amount_kes || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [saleForm.sale_amount_kes]);
+
+  const saleQuantity = useMemo(() => {
+    const parsed = Number.parseInt(saleForm.quantity || '1', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  }, [saleForm.quantity]);
+
+  const totalOrderValue = useMemo(() => Number((unitSaleAmount * saleQuantity).toFixed(2)), [unitSaleAmount, saleQuantity]);
+  const commissionPercent = useMemo(() => {
+    const parsed = Number(product?.commission_percent || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [product?.commission_percent]);
+  const estimatedAffiliatePayout = useMemo(() => Number(((totalOrderValue * commissionPercent) / 100).toFixed(2)), [totalOrderValue, commissionPercent]);
+  const estimatedPlatformFee = useMemo(() => Number((estimatedAffiliatePayout * 0.1).toFixed(2)), [estimatedAffiliatePayout]);
+
   useEffect(() => {
     supabase.from('products').select('*').eq('id', params.id).single().then(({ data }) => setProduct(data));
   }, [params.id]);
+
+  useEffect(() => {
+    if (!product || saleForm.sale_amount_kes) return;
+    const basePrice = Number(product.price_kes || 0);
+    if (Number.isFinite(basePrice) && basePrice > 0) {
+      setSaleForm((current) => ({ ...current, sale_amount_kes: String(basePrice) }));
+    }
+  }, [product, saleForm.sale_amount_kes]);
 
   const previewUrl = useMemo(() => getPrimaryMediaUrl(product), [product]);
 
@@ -103,12 +129,12 @@ export default function Page() {
       const response = await merchantApi.recordAffiliateSale(product.id, {
         product_id: product.id,
         affiliate_code: saleForm.affiliate_code,
-        sale_amount_kes: Number(saleForm.sale_amount_kes),
-        quantity: Number(saleForm.quantity || '1'),
+        sale_amount_kes: unitSaleAmount,
+        quantity: saleQuantity,
         customer_reference: saleForm.customer_reference,
         notes: saleForm.notes || null,
       });
-      setSaleStatus(`Sale submitted for review. KES ${response.commission_kes} has been reserved from escrow for ${response.affiliate_name}.`);
+      setSaleStatus(`Sale submitted for review. KES ${response.commission_kes} has been reserved from escrow for ${response.affiliate_name}. Total recorded sale: KES ${response.order_value_kes}.`);
       setSaleForm({
         affiliate_code: '',
         sale_amount_kes: '',
@@ -191,18 +217,27 @@ export default function Page() {
             <div>
               <div className="mb-2 font-bold text-white">Record Affiliate Sale</div>
               <p className="text-sm text-[#9ca5b9]">
-                Use the affiliate code shared from My Links. Affilia reserves the commission from escrow immediately and sends the sale to system review before payout.
+                Use the affiliate code shared from My Links. Affilia calculates the payout automatically from your commission rate, reserves it from escrow immediately, and sends the sale to system review before payout.
               </p>
             </div>
             <input className="input-shell" placeholder="Affiliate / Promo code" value={saleForm.affiliate_code} onChange={(e) => setSaleForm((current) => ({ ...current, affiliate_code: e.target.value.toUpperCase() }))} />
             <div className="grid gap-3 sm:grid-cols-2">
-              <input className="input-shell" placeholder="Sale amount (KES)" value={saleForm.sale_amount_kes} onChange={(e) => setSaleForm((current) => ({ ...current, sale_amount_kes: e.target.value }))} />
+              <input className="input-shell" placeholder="Unit sale amount (KES)" value={saleForm.sale_amount_kes} onChange={(e) => setSaleForm((current) => ({ ...current, sale_amount_kes: e.target.value }))} />
               <input className="input-shell" placeholder="Quantity" value={saleForm.quantity} onChange={(e) => setSaleForm((current) => ({ ...current, quantity: e.target.value }))} />
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#d0d6e2]">
+              <div className="mb-3 font-bold text-white">Payout preview</div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="info-row"><span>Commission rate</span><strong>{commissionPercent}% of total sale</strong></div>
+                <div className="info-row"><span>Total order value</span><strong>KES {totalOrderValue.toLocaleString()}</strong></div>
+                <div className="info-row"><span>Affiliate payout</span><strong className="text-[#7ef0a2]">KES {estimatedAffiliatePayout.toLocaleString()}</strong></div>
+                <div className="info-row"><span>Platform fee</span><strong>KES {estimatedPlatformFee.toLocaleString()}</strong></div>
+              </div>
             </div>
             <input className="input-shell" placeholder="Customer / Order reference" value={saleForm.customer_reference} onChange={(e) => setSaleForm((current) => ({ ...current, customer_reference: e.target.value }))} />
             <textarea className="input-shell min-h-[110px]" placeholder="Notes for system review (optional)" value={saleForm.notes} onChange={(e) => setSaleForm((current) => ({ ...current, notes: e.target.value }))} />
             {saleStatus ? <div className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-sm text-[#d4dbe7]">{saleStatus}</div> : null}
-            <Button loading={submittingSale} loadingText="Submitting sale..." onClick={submitManualSale}>
+            <Button loading={submittingSale} loadingText="Submitting sale..." onClick={submitManualSale} disabled={!saleForm.affiliate_code.trim() || unitSaleAmount <= 0 || saleQuantity < 1 || !saleForm.customer_reference.trim()}>
               Submit Affiliate Sale
             </Button>
           </div>
