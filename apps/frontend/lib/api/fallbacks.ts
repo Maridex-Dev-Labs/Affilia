@@ -258,6 +258,34 @@ export async function generateAffiliateLinkFallback(productId: string) {
     throw new Error('Activate an affiliate package in Settings before generating links.');
   }
 
+  const { data: reusableLink, error: reusableLinkError } = await supabase
+    .from('affiliate_links')
+    .select('unique_code, destination_url')
+    .eq('affiliate_id', userId)
+    .eq('product_id', productId)
+    .neq('status', 'archived')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (reusableLinkError) {
+    throw new Error(reusableLinkError.message);
+  }
+
+  if (reusableLink?.unique_code) {
+    return {
+      code: reusableLink.unique_code,
+      destination_url: reusableLink.destination_url || buildPublicProductLink(productId, reusableLink.unique_code),
+      reused: true,
+      quota: await getAffiliateLinkQuotaFallback(),
+    };
+  }
+
+  const quota = await getAffiliateLinkQuotaFallback();
+  if (quota.is_limited && (quota.remaining_today ?? 0) <= 0) {
+    throw new Error('You have reached today’s free link limit. Try again tomorrow or upgrade for unlimited link generation.');
+  }
+
   const { data: product, error: productError } = await supabase
     .from('products')
     .select('id')
@@ -284,7 +312,70 @@ export async function generateAffiliateLinkFallback(productId: string) {
     throw new Error(error.message);
   }
 
-  return { code, destination_url: destinationUrl };
+  return {
+    code,
+    destination_url: destinationUrl,
+    reused: false,
+    quota: await getAffiliateLinkQuotaFallback(),
+  };
+}
+
+export async function getAffiliateLinkQuotaFallback() {
+  const userId = await requireUserId();
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('active_plan_code, plan_status, role')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile || profile.role !== 'affiliate') {
+    throw new Error('Please sign in again.');
+  }
+
+  const effectivePlanCode = profile.active_plan_code || 'affiliate_starter';
+  const effectivePlanStatus = profile.plan_status || 'active';
+  if (!effectivePlanCode || effectivePlanStatus !== 'active') {
+    return {
+      plan_code: effectivePlanCode,
+      daily_limit: null,
+      used_today: 0,
+      remaining_today: null,
+      is_limited: false,
+    };
+  }
+
+  if (effectivePlanCode !== 'affiliate_starter') {
+    return {
+      plan_code: effectivePlanCode,
+      daily_limit: null,
+      used_today: 0,
+      remaining_today: null,
+      is_limited: false,
+    };
+  }
+
+  const windowStart = new Date();
+  windowStart.setUTCHours(0, 0, 0, 0);
+
+  const { count, error } = await supabase
+    .from('affiliate_links')
+    .select('id', { head: true, count: 'exact' })
+    .eq('affiliate_id', userId)
+    .gte('created_at', windowStart.toISOString());
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const usedToday = count || 0;
+  const dailyLimit = 5;
+  return {
+    plan_code: effectivePlanCode,
+    daily_limit: dailyLimit,
+    used_today: usedToday,
+    remaining_today: Math.max(0, dailyLimit - usedToday),
+    is_limited: true,
+  };
 }
 
 
@@ -319,6 +410,7 @@ export async function listAffiliateLinksFallback() {
       destination_url: link.destination_url || buildPublicProductLink(link.product_id, link.unique_code),
       products: link.product_id ? productMap.get(link.product_id) || null : null,
     })),
+    quota: await getAffiliateLinkQuotaFallback(),
   };
 }
 

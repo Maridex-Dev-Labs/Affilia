@@ -1,6 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 
 from app.db.supabase import select
+
+FREE_AFFILIATE_DAILY_LINK_LIMIT = 5
 
 
 def default_free_plan(role: str) -> dict | None:
@@ -50,3 +54,48 @@ def ensure_affiliate_operational_access(profile: dict):
         role='affiliate',
         detail='Activate an affiliate package in Settings before you generate links or submit affiliate operations.',
     )
+
+
+def get_affiliate_link_quota(profile: dict) -> dict:
+    plan = ensure_affiliate_operational_access(profile)
+    plan_code = plan.get('plan_code')
+
+    if plan_code != 'affiliate_starter':
+        return {
+            'plan_code': plan_code,
+            'daily_limit': None,
+            'used_today': 0,
+            'remaining_today': None,
+            'is_limited': False,
+            'window_starts_at': datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
+        }
+
+    window_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    rows = select(
+        'affiliate_links',
+        params={
+            'affiliate_id': f'eq.{profile["id"]}',
+            'created_at': f'gte.{window_start.isoformat()}',
+            'select': 'id',
+        },
+    )
+    used_today = len(rows or [])
+    remaining = max(0, FREE_AFFILIATE_DAILY_LINK_LIMIT - used_today)
+    return {
+        'plan_code': plan_code,
+        'daily_limit': FREE_AFFILIATE_DAILY_LINK_LIMIT,
+        'used_today': used_today,
+        'remaining_today': remaining,
+        'is_limited': True,
+        'window_starts_at': window_start.isoformat(),
+    }
+
+
+def ensure_affiliate_link_generation_available(profile: dict) -> dict:
+    quota = get_affiliate_link_quota(profile)
+    if quota['is_limited'] and quota['remaining_today'] <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='You have reached today’s free link limit. Try again tomorrow or upgrade for unlimited link generation.',
+        )
+    return quota

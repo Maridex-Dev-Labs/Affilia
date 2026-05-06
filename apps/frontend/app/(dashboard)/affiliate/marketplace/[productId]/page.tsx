@@ -5,8 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowClockwise } from '@phosphor-icons/react';
 
 import { affiliateApi } from '@/lib/api/affiliate';
-import { isBackendUnavailableError } from '@/lib/api/client';
-import { generateAffiliateLinkFallback } from '@/lib/api/fallbacks';
 import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
 import { supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
@@ -22,12 +20,21 @@ type ProductDetail = {
   media?: Array<{ type: 'image' | 'video'; url: string }>;
 };
 
+type LinkQuota = {
+  plan_code: string | null;
+  daily_limit: number | null;
+  used_today: number;
+  remaining_today: number | null;
+  is_limited: boolean;
+};
+
 export default function Page() {
   const router = useRouter();
   const params = useParams<{ productId: string }>();
-  const { canGenerateAffiliateLinks, isAffiliateVerified, activePlanCode } = usePlanAccess();
+  const { canGenerateAffiliateLinks, isAffiliateVerified } = usePlanAccess();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [quota, setQuota] = useState<LinkQuota | null>(null);
 
   useEffect(() => {
     supabase
@@ -39,6 +46,10 @@ export default function Page() {
       .single()
       .then(({ data }) => setProduct(data));
   }, [params.productId]);
+
+  useEffect(() => {
+    affiliateApi.linkQuota().then(setQuota).catch(() => setQuota(null));
+  }, []);
 
   const previewUrl = useMemo(() => getPrimaryMediaUrl(product), [product]);
 
@@ -52,13 +63,9 @@ export default function Page() {
       return;
     }
     try {
-      const data = await affiliateApi.generateLink({ product_id: params.productId }).catch(async (err) => {
-        if (isBackendUnavailableError(err)) {
-          return generateAffiliateLinkFallback(params.productId);
-        }
-        throw err;
-      });
-      setStatus(`Smart link created: ${data.code}`);
+      const data = await affiliateApi.generateLink({ product_id: params.productId });
+      setQuota(data.quota || null);
+      setStatus(data.reused ? `Existing smart link ready: ${data.code}` : `Smart link created: ${data.code}`);
       window.setTimeout(() => router.push(`/affiliate/my-links?created=${encodeURIComponent(data.code)}`), 500);
     } catch (err: unknown) {
       setStatus(sanitizeUserFacingError(err, 'We could not generate a smart link right now.'));
@@ -86,6 +93,13 @@ export default function Page() {
           <div className="text-3xl font-black">KES {product.price_kes}</div>
           <div className="text-sm text-muted">Commission</div>
           <div className="text-xl font-bold text-[#009A44]">{product.commission_percent}%</div>
+          {quota?.is_limited ? (
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-[#cfd5e1]">
+              <div className="font-semibold text-white">Free plan daily limit</div>
+              <div className="mt-1">You can generate up to {quota.daily_limit} new product links per day.</div>
+              <div className="mt-1 text-[#9aa2b5]">{quota.remaining_today} of {quota.daily_limit} generations left today.</div>
+            </div>
+          ) : null}
           <Button onClick={generateLink} disabled={!canGenerateAffiliateLinks}>Generate Link</Button>
           {status ? <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-[#cfd5e1]">{status}</div> : null}
         </div>

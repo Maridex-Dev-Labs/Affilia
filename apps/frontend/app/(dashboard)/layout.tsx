@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -21,6 +21,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { canAccessPath, loading: planAccessLoading, isAffiliateVerified, activePlanCode } = usePlanAccess();
+  const [resolverTimedOut, setResolverTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !profileLoading && !planAccessLoading) {
+      setResolverTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setResolverTimedOut(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [loading, profileLoading, planAccessLoading]);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -38,10 +48,46 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   }, [profile, profileLoading, router, user]);
 
-  if (loading || profileLoading || planAccessLoading || !safePathname) {
+  useEffect(() => {
+    if (!profile?.role || !safePathname) return;
+    if (profile.role === 'affiliate' && safePathname.startsWith('/merchant')) {
+      router.replace('/affiliate/overview');
+      return;
+    }
+    if (profile.role === 'merchant' && safePathname.startsWith('/affiliate')) {
+      router.replace('/merchant/overview');
+    }
+  }, [profile?.role, router, safePathname]);
+
+  if ((loading || profileLoading || planAccessLoading || !safePathname) && !resolverTimedOut) {
     return (
       <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center">
         <KenyanShieldLoader label="Preparing your workspace..." />
+      </div>
+    );
+  }
+
+  if (resolverTimedOut) {
+    return (
+      <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-2xl card-surface p-8">
+          <div className="text-xs font-bold uppercase tracking-[0.24em] text-white/45">Workspace recovery</div>
+          <h1 className="mt-3 text-3xl font-black italic text-white">We could not resolve the workspace route yet.</h1>
+          <p className="mt-4 text-sm leading-6 text-[#9aa2b5]">
+            Choose the correct workspace below. This bypasses the loading loop and keeps your session usable.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/affiliate/overview" className="button-primary rounded-full px-5 py-3 text-sm font-semibold">
+              Affiliate Workspace
+            </Link>
+            <Link href="/merchant/overview" className="rounded-full border border-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5">
+              Merchant Workspace
+            </Link>
+            <Link href="/dashboard" className="rounded-full border border-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5">
+              Account Resolver
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

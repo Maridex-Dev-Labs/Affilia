@@ -7,7 +7,11 @@ from app.api.deps import get_current_user, require_role
 from app.config import settings
 from app.db.supabase import delete as delete_rows
 from app.db.supabase import insert, rpc, select, update
-from app.services.access_service import ensure_affiliate_operational_access
+from app.services.access_service import (
+    ensure_affiliate_link_generation_available,
+    ensure_affiliate_operational_access,
+    get_affiliate_link_quota,
+)
 from app.utils.helpers import utcnow_iso
 
 router = APIRouter()
@@ -83,6 +87,7 @@ def marketplace(user=Depends(get_current_user)):
 @router.get('/links')
 def list_links(user=Depends(get_current_user)):
     profile = require_role(user['id'], 'affiliate')
+    quota = get_affiliate_link_quota(profile)
     items = select(
         'affiliate_links',
         params={
@@ -109,7 +114,13 @@ def list_links(user=Depends(get_current_user)):
             **row,
             'products': product_map.get(row.get('product_id')),
         })
-    return {'items': normalized}
+    return {'items': normalized, 'quota': quota}
+
+
+@router.get('/link-quota')
+def link_quota(user=Depends(get_current_user)):
+    profile = require_role(user['id'], 'affiliate')
+    return get_affiliate_link_quota(profile)
 
 
 @router.post('/verification/submit')
@@ -178,6 +189,28 @@ def submit_verification(payload: AffiliateVerificationPayload, user=Depends(get_
 def generate_link(payload: LinkPayload, user=Depends(get_current_user)):
     profile = require_role(user['id'], 'affiliate')
     ensure_affiliate_operational_access(profile)
+    existing_links = select(
+        'affiliate_links',
+        params={
+            'affiliate_id': f'eq.{profile["id"]}',
+            'product_id': f'eq.{payload.product_id}',
+            'status': 'neq.archived',
+            'select': 'id,unique_code,destination_url,status',
+            'order': 'created_at.desc',
+            'limit': 1,
+        },
+    )
+    if existing_links:
+        existing = existing_links[0]
+        quota = get_affiliate_link_quota(profile)
+        return {
+            'code': existing['unique_code'],
+            'destination_url': existing.get('destination_url') or f"{settings.APP_URL}/marketplace/products/{payload.product_id}?ref={existing['unique_code']}",
+            'reused': True,
+            'quota': quota,
+        }
+
+    quota = ensure_affiliate_link_generation_available(profile)
     products = select(
         'products',
         params={
@@ -201,7 +234,13 @@ def generate_link(payload: LinkPayload, user=Depends(get_current_user)):
             'destination_url': f"{settings.APP_URL}/marketplace/products/{payload.product_id}?ref={code}",
         },
     )
-    return {'code': code, 'destination_url': f"{settings.APP_URL}/marketplace/products/{payload.product_id}?ref={code}"}
+    refreshed_quota = get_affiliate_link_quota(profile) if quota['is_limited'] else quota
+    return {
+        'code': code,
+        'destination_url': f"{settings.APP_URL}/marketplace/products/{payload.product_id}?ref={code}",
+        'reused': False,
+        'quota': refreshed_quota,
+    }
 
 
 @router.post('/links/{link_id}/pause')

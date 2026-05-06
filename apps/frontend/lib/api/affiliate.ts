@@ -1,5 +1,5 @@
 import { apiClient, isBackendUnavailableError } from './client';
-import { listAffiliateLinksFallback, mutateAffiliateLinkFallback } from './fallbacks';
+import { generateAffiliateLinkFallback, getAffiliateLinkQuotaFallback, listAffiliateLinksFallback, mutateAffiliateLinkFallback } from './fallbacks';
 
 type GenerateLinkPayload = {
   product_id: string;
@@ -12,8 +12,27 @@ type AffiliateVerificationPayload = {
 export const affiliateApi = {
   dashboard: async () => (await apiClient.get('/api/affiliates/dashboard')).data,
   marketplace: async () => (await apiClient.get('/api/affiliates/marketplace')).data,
-  generateLink: async (payload: GenerateLinkPayload) => (await apiClient.post('/api/affiliates/generate-link', payload)).data,
+  generateLink: async (payload: GenerateLinkPayload) => {
+    try {
+      return (await apiClient.post('/api/affiliates/generate-link', payload)).data;
+    } catch (error) {
+      if (isBackendUnavailableError(error)) {
+        return generateAffiliateLinkFallback(payload.product_id);
+      }
+      throw error;
+    }
+  },
   leaderboard: async () => (await apiClient.get('/api/affiliates/leaderboard')).data,
+  linkQuota: async () => {
+    try {
+      return (await apiClient.get('/api/affiliates/link-quota')).data;
+    } catch (error) {
+      if (isBackendUnavailableError(error)) {
+        return getAffiliateLinkQuotaFallback();
+      }
+      throw error;
+    }
+  },
   links: async () => {
     try {
       return (await apiClient.get('/api/affiliates/links')).data;

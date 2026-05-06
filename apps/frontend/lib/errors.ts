@@ -54,6 +54,7 @@ const SAFE_MESSAGES = [
   /^the affiliate tied to this code/i,
   /^this customer or order reference/i,
   /^your available escrow balance/i,
+  /^you have reached today’s free link limit/i,
 ];
 
 export function isTechnicalErrorMessage(message: string) {

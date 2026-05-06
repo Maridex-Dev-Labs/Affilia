@@ -20,10 +20,19 @@ type LinkRow = {
   products?: { title?: string | null } | null;
 };
 
+type LinkQuota = {
+  plan_code: string | null;
+  daily_limit: number | null;
+  used_today: number;
+  remaining_today: number | null;
+  is_limited: boolean;
+};
+
 export default function Page() {
   const searchParams = useSearchParams();
   const { canGenerateAffiliateLinks } = usePlanAccess();
   const [links, setLinks] = useState<LinkRow[]>([]);
+  const [quota, setQuota] = useState<LinkQuota | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [workingLinkId, setWorkingLinkId] = useState<string | null>(null);
 
@@ -31,6 +40,7 @@ export default function Page() {
     try {
       const data = await affiliateApi.links();
       setLinks(data.items || []);
+      setQuota(data.quota || null);
       if (!searchParams.get('created')) {
         setStatus(null);
       }
@@ -78,6 +88,11 @@ export default function Page() {
         <p className="mt-2 text-muted">
           Active links can be paused or resumed. Links with clicks, conversions, or earnings are archived instead of being permanently deleted.
         </p>
+        {quota?.is_limited ? (
+          <div className="mt-3 text-sm text-[#cfd5e1]">
+            Free plan quota: <span className="font-semibold text-white">{quota.remaining_today}</span> of {quota.daily_limit} new link generations left today.
+          </div>
+        ) : null}
       </div>
 
       {status ? <div className="card-surface p-4 text-sm text-[#d4dbe7]">{status}</div> : null}
