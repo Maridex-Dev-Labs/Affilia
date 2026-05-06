@@ -13,10 +13,10 @@ export function useEarnings() {
     if (!user) return;
     supabase
       .from('conversions')
-      .select('commission_earned_kes')
+      .select('commission_earned_kes, platform_fee_kes')
       .eq('affiliate_id', user.id)
       .then(({ data }) => {
-        const sum = (data || []).reduce((acc, cur: any) => acc + (cur.commission_earned_kes || 0), 0);
+        const sum = (data || []).reduce((acc, cur: any) => acc + Math.max(0, Number(cur.commission_earned_kes || 0) - Number(cur.platform_fee_kes || 0)), 0);
         setTotal(sum);
         setLoading(false);
       });

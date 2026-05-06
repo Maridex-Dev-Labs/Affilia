@@ -45,6 +45,16 @@ export default function Page() {
     loadTutorData();
   }, [user, tutorProfile]);
 
+  useEffect(() => {
+    if (!tutorProfile || tutorProfile.status === 'approved') return;
+    setApplication({
+      headline: tutorProfile.headline || '',
+      bio: tutorProfile.bio || '',
+      expertise: Array.isArray(tutorProfile.expertise) ? tutorProfile.expertise.join(', ') : '',
+      googleMeetEmail: tutorProfile.google_meet_email || '',
+    });
+  }, [tutorProfile]);
+
   const submitApplication = async () => {
     if (!user || loadingAction) return;
     setLoadingAction('application');
@@ -56,6 +66,10 @@ export default function Page() {
         expertise: application.expertise.split(',').map((item) => item.trim()).filter(Boolean),
         google_meet_email: application.googleMeetEmail,
         status: 'pending',
+        rejection_reason: null,
+        approved_at: null,
+        approved_by: null,
+        is_featured: false,
       },
       { onConflict: 'user_id' }
     );
@@ -165,9 +179,31 @@ export default function Page() {
       )}
 
       {tutorProfile && tutorProfile.status !== 'approved' && (
-        <section className="card-surface p-6">
-          <h2 className="text-xl font-bold">Application status</h2>
-          <p className="mt-3 text-sm text-muted">Current review state: {tutorProfile.status}. {tutorProfile.rejection_reason || 'You will see the updated decision here.'}</p>
+        <section className="card-surface p-6 space-y-5">
+          <div>
+            <h2 className="text-xl font-bold">Application status</h2>
+            <p className="mt-3 text-sm text-muted">Current review state: {tutorProfile.status}. {tutorProfile.rejection_reason || 'You will see the updated decision here.'}</p>
+          </div>
+
+          {tutorProfile.status === 'rejected' && isPremium && (
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-50">
+              You can revise your tutor application and apply again. Your previous rejection note is kept above for reference.
+            </div>
+          )}
+
+          {isPremium && (tutorProfile.status === 'rejected' || tutorProfile.status === 'pending' || tutorProfile.status === 'suspended') && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <input className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm" placeholder="Headline" value={application.headline} onChange={(e) => setApplication((prev) => ({ ...prev, headline: e.target.value }))} />
+              <input className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm" placeholder="Google Meet email" value={application.googleMeetEmail} onChange={(e) => setApplication((prev) => ({ ...prev, googleMeetEmail: e.target.value }))} />
+              <input className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm lg:col-span-2" placeholder="Expertise comma separated" value={application.expertise} onChange={(e) => setApplication((prev) => ({ ...prev, expertise: e.target.value }))} />
+              <textarea className="min-h-36 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm lg:col-span-2" placeholder="Why should learners trust you?" value={application.bio} onChange={(e) => setApplication((prev) => ({ ...prev, bio: e.target.value }))} />
+              <div className="lg:col-span-2">
+                <button onClick={submitApplication} disabled={!!loadingAction} className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition disabled:opacity-60">
+                  {loadingAction === 'application' ? 'Submitting...' : tutorProfile.status === 'rejected' ? 'Re-apply as tutor' : 'Update application'}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

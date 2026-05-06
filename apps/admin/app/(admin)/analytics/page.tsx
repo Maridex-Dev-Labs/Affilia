@@ -14,14 +14,23 @@ export default function Page() {
       const { data: conversions } = await supabase
         .from('conversions')
         .select('order_value_kes, platform_fee_kes, created_at');
+      const { data: subscriptions } = await supabase
+        .from('profile_plan_selections')
+        .select('amount_kes, paid_at, activated_at, status')
+        .not('paid_at', 'is', null)
+        .in('status', ['active', 'cancelled', 'expired']);
       const { data: clicks } = await supabase.from('click_events').select('id, clicked_at');
 
       const totalSales = (conversions || []).reduce((acc, c) => acc + (c.order_value_kes || 0), 0);
-      const totalRevenue = (conversions || []).reduce((acc, c) => acc + (c.platform_fee_kes || 0), 0);
+      const processingRevenue = (conversions || []).reduce((acc, c) => acc + (c.platform_fee_kes || 0), 0);
+      const subscriptionRevenue = (subscriptions || []).reduce((acc, s) => acc + (s.amount_kes || 0), 0);
+      const totalRevenue = processingRevenue + subscriptionRevenue;
       const totalClicks = (clicks || []).length;
 
       setStats([
         { label: 'Total Sales (KES)', value: totalSales },
+        { label: 'Processing Revenue (KES)', value: processingRevenue },
+        { label: 'Subscription Revenue (KES)', value: subscriptionRevenue },
         { label: 'Platform Revenue (KES)', value: totalRevenue },
         { label: 'Total Clicks', value: totalClicks },
       ]);
@@ -31,13 +40,20 @@ export default function Page() {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const key = d.toISOString().slice(0, 10);
-        days[key] = { date: key, sales: 0, revenue: 0, clicks: 0 };
+        days[key] = { date: key, sales: 0, revenue: 0, subscriptionRevenue: 0, clicks: 0 };
       }
       (conversions || []).forEach((c) => {
         const key = new Date(c.created_at).toISOString().slice(0, 10);
         if (days[key]) {
           days[key].sales += c.order_value_kes || 0;
           days[key].revenue += c.platform_fee_kes || 0;
+        }
+      });
+      (subscriptions || []).forEach((s) => {
+        const key = new Date(s.paid_at || s.activated_at).toISOString().slice(0, 10);
+        if (days[key]) {
+          days[key].subscriptionRevenue += s.amount_kes || 0;
+          days[key].revenue += s.amount_kes || 0;
         }
       });
       (clicks || []).forEach((c) => {
@@ -57,7 +73,7 @@ export default function Page() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Analytics</h1>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {stats.map((s) => (
           <div key={s.label} className="card-surface p-5">
             <p className="text-sm text-muted">{s.label}</p>

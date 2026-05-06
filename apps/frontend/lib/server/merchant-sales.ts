@@ -157,7 +157,7 @@ export async function submitMerchantAffiliateSale(userId: string, payload: Manua
   const orderValue = Math.round(unitSaleAmount * quantity * 100) / 100;
   const commissionPercent = toNumber(product.commission_percent);
   const commission = Math.round(orderValue * commissionPercent) / 100;
-  const platformFee = Math.round(commission * 0.1 * 100) / 100;
+  const platformFee = Math.round(commission * 0.05 * 100) / 100;
 
   if (toNumber(escrow.balance_kes) < commission) {
     throw new Error('Your available escrow balance is too low for this commission.');

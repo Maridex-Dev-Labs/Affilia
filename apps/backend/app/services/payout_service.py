@@ -1,4 +1,5 @@
 from app.db.supabase import insert, select, update
+from app.services.receipt_service import create_official_receipt
 from app.utils.helpers import utcnow_iso
 
 
@@ -16,6 +17,13 @@ def confirm_pending_payouts() -> dict[str, object]:
         'status': 'completed',
         'confirmed_at': utcnow_iso(),
     })
+    paid_at = utcnow_iso()
     for item in preview['items']:
-        update('payouts', {'status': 'paid', 'paid_at': utcnow_iso()}, {'id': f"eq.{item['id']}"})
+        update('payouts', {'status': 'paid', 'paid_at': paid_at}, {'id': f"eq.{item['id']}"})
+        create_official_receipt(
+            receipt_type='payout',
+            recipient_id=item['affiliate_id'],
+            amount_kes=float(item.get('amount_kes') or 0),
+            mpesa_reference=f"PAYOUT-{str(item['id'])[:8].upper()}",
+        )
     return {'batch': batch[0] if isinstance(batch, list) and batch else None, **preview}

@@ -12,13 +12,13 @@ export default function Page() {
     if (!user) return;
     supabase
       .from('conversions')
-      .select('id, commission_earned_kes, created_at, status')
+      .select('id, commission_earned_kes, platform_fee_kes, created_at, status')
       .eq('affiliate_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => setRows(data || []));
   }, [user]);
 
-  const total = rows.reduce((acc, r) => acc + (r.commission_earned_kes || 0), 0);
+  const total = rows.reduce((acc, r) => acc + Math.max(0, Number(r.commission_earned_kes || 0) - Number(r.platform_fee_kes || 0)), 0);
 
   return (
     <div className="space-y-6">
@@ -32,7 +32,9 @@ export default function Page() {
           <thead className="text-left text-muted">
             <tr>
               <th className="py-2">ID</th>
-              <th className="py-2">Commission</th>
+              <th className="py-2">Gross</th>
+              <th className="py-2">Fee</th>
+              <th className="py-2">Net</th>
               <th className="py-2">Status</th>
               <th className="py-2">Date</th>
             </tr>
@@ -42,13 +44,15 @@ export default function Page() {
               <tr key={r.id} className="border-t border-soft">
                 <td className="py-3">{r.id.slice(0, 8)}</td>
                 <td className="py-3">KES {r.commission_earned_kes}</td>
+                <td className="py-3">KES {r.platform_fee_kes || 0}</td>
+                <td className="py-3">KES {Math.max(0, Number(r.commission_earned_kes || 0) - Number(r.platform_fee_kes || 0))}</td>
                 <td className="py-3">{r.status}</td>
                 <td className="py-3">{new Date(r.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-6 text-muted">
+                <td colSpan={6} className="py-6 text-muted">
                   No earnings yet.
                 </td>
               </tr>

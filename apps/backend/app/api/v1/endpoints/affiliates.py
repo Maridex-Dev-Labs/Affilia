@@ -40,10 +40,10 @@ def dashboard(user=Depends(get_current_user)):
     links = select('affiliate_links', params={'affiliate_id': f'eq.{affiliate_id}', 'select': 'id,clicks,status,created_at'})
     conversions = select(
         'conversions',
-        params={'affiliate_id': f'eq.{affiliate_id}', 'select': 'commission_earned_kes,created_at'},
+        params={'affiliate_id': f'eq.{affiliate_id}', 'select': 'commission_earned_kes,platform_fee_kes,created_at'},
     )
 
-    total = sum(_to_number(row.get('commission_earned_kes')) for row in conversions)
+    total = sum(max(0.0, _to_number(row.get('commission_earned_kes')) - _to_number(row.get('platform_fee_kes'))) for row in conversions)
     clicks = sum(int(row.get('clicks') or 0) for row in links)
 
     today_conversions = select(
@@ -51,10 +51,10 @@ def dashboard(user=Depends(get_current_user)):
         params={
             'affiliate_id': f'eq.{affiliate_id}',
             'created_at': f'gte.{__import__("datetime").datetime.utcnow().date().isoformat()}T00:00:00',
-            'select': 'commission_earned_kes',
+            'select': 'commission_earned_kes,platform_fee_kes',
         },
     )
-    today_total = sum(_to_number(row.get('commission_earned_kes')) for row in today_conversions)
+    today_total = sum(max(0.0, _to_number(row.get('commission_earned_kes')) - _to_number(row.get('platform_fee_kes'))) for row in today_conversions)
 
     leaderboard = rpc('get_leaderboard', {'limit_count': 50})
     user_rank = None

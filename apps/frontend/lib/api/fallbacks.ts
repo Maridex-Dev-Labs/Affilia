@@ -137,7 +137,7 @@ export async function submitMerchantAffiliateSaleFallback(payload: {
   const orderValue = Number((unitSaleAmount * quantity).toFixed(2));
   const commissionPercent = toNumber(product.commission_percent);
   const commission = Number(((orderValue * commissionPercent) / 100).toFixed(2));
-  const platformFee = Number((commission * 0.1).toFixed(2));
+  const platformFee = Number((commission * 0.05).toFixed(2));
   const balance = toNumber(escrow.balance_kes);
   const reservedBalance = toNumber(escrow.reserved_balance_kes);
 

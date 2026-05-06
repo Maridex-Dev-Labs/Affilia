@@ -20,18 +20,27 @@ export default function Page() {
       const pendingPayouts = (payouts || []).reduce((acc, p) => acc + (p.amount_kes || 0), 0);
 
       const { data: conversions } = await supabase.from('conversions').select('platform_fee_kes, created_at');
+      const { data: subscriptions } = await supabase
+        .from('profile_plan_selections')
+        .select('amount_kes, paid_at, activated_at, status')
+        .not('paid_at', 'is', null)
+        .in('status', ['active', 'cancelled', 'expired']);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayRevenue = (conversions || [])
+      const todayProcessingRevenue = (conversions || [])
         .filter((c) => new Date(c.created_at) >= today)
         .reduce((acc, c) => acc + (c.platform_fee_kes || 0), 0);
+      const todaySubscriptionRevenue = (subscriptions || [])
+        .filter((s) => new Date(s.paid_at || s.activated_at) >= today)
+        .reduce((acc, s) => acc + (s.amount_kes || 0), 0);
+      const todayRevenue = todayProcessingRevenue + todaySubscriptionRevenue;
 
       const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
 
       setStats([
         { label: 'Platform Escrow', value: `KES ${totalEscrow}`, delta: 'Live' },
         { label: 'Pending Payouts', value: `KES ${pendingPayouts}`, delta: 'Pending' },
-        { label: 'Platform Revenue', value: `KES ${todayRevenue}`, delta: 'Today' },
+        { label: 'Platform Revenue', value: `KES ${todayRevenue}`, delta: `Today · Fees ${todayProcessingRevenue} · Subs ${todaySubscriptionRevenue}` },
         { label: 'Active Users', value: `${count || 0}`, delta: 'Total' },
       ]);
 

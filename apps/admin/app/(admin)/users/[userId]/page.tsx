@@ -39,7 +39,7 @@ export default function Page() {
           .eq('affiliate_id', userId);
         const { data: conv } = await supabase
           .from('conversions')
-          .select('id, commission_earned_kes, status, created_at')
+          .select('id, commission_earned_kes, platform_fee_kes, status, created_at')
           .eq('affiliate_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
@@ -184,7 +184,9 @@ export default function Page() {
           <thead className="text-left text-muted">
             <tr>
               <th className="py-2">Amount</th>
-              <th className="py-2">Commission</th>
+              <th className="py-2">Gross</th>
+              <th className="py-2">Fee</th>
+              <th className="py-2">Net</th>
               <th className="py-2">Status</th>
               <th className="py-2">Created</th>
             </tr>
@@ -194,13 +196,15 @@ export default function Page() {
               <tr key={c.id} className="border-t border-soft">
                 <td className="py-3">KES {c.order_value_kes || 0}</td>
                 <td className="py-3">KES {c.commission_earned_kes || 0}</td>
+                <td className="py-3">KES {c.platform_fee_kes || 0}</td>
+                <td className="py-3">KES {Math.max(0, Number(c.commission_earned_kes || 0) - Number(c.platform_fee_kes || 0))}</td>
                 <td className="py-3">{c.status}</td>
                 <td className="py-3">{new Date(c.created_at).toLocaleString('en-KE')}</td>
               </tr>
             ))}
             {conversions.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-6 text-muted">
+                <td colSpan={6} className="py-6 text-muted">
                   No conversions yet.
                 </td>
               </tr>

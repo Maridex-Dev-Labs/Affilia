@@ -114,6 +114,8 @@ def approve_conversion(conversion_id: str, approver_id: str) -> dict:
     approved = updated_rows[0] if updated_rows else conversion
 
     commission = _to_number(approved.get('commission_earned_kes'))
+    platform_fee = _to_number(approved.get('platform_fee_kes'))
+    net_payout = max(0.0, round(commission - platform_fee, 2))
     reserved_commission = _to_number(approved.get('reserved_commission_kes')) or commission
     consume_reserved_commission(approved['merchant_id'], reserved_commission)
 
@@ -123,7 +125,7 @@ def approve_conversion(conversion_id: str, approver_id: str) -> dict:
             'payouts',
             {
                 'affiliate_id': approved['affiliate_id'],
-                'amount_kes': commission,
+                'amount_kes': net_payout,
                 'status': 'pending',
                 'conversion_id': conversion_id,
             },
@@ -137,7 +139,7 @@ def approve_conversion(conversion_id: str, approver_id: str) -> dict:
                 'affiliate_links',
                 {
                     'conversions': int(link.get('conversions') or 0) + 1,
-                    'total_earned_kes': _to_number(link.get('total_earned_kes')) + commission,
+                    'total_earned_kes': _to_number(link.get('total_earned_kes')) + net_payout,
                 },
                 {'id': f"eq.{link['id']}"},
             )

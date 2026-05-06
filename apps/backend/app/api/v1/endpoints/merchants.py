@@ -241,7 +241,7 @@ def record_affiliate_sale(product_id: str, payload: ManualSalePayload, user=Depe
     order_value = round(unit_sale_amount * payload.quantity, 2)
     commission_percent = _to_number(product.get('commission_percent'))
     commission = round(order_value * commission_percent / 100, 2)
-    platform_fee = round(commission * 0.1, 2)
+    platform_fee = round(commission * 0.05, 2)
     reserve_merchant_commission(profile['id'], commission)
 
     try:

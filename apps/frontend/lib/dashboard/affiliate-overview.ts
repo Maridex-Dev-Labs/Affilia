@@ -30,7 +30,7 @@ export async function loadAffiliateOverview(userId: string): Promise<AffiliateOv
 
   const [linksResult, conversionsResult, leaderboardResult, productsResult] = await Promise.all([
     supabase.from('affiliate_links').select('id, clicks, status').eq('affiliate_id', userId),
-    supabase.from('conversions').select('commission_earned_kes, created_at').eq('affiliate_id', userId),
+    supabase.from('conversions').select('commission_earned_kes, platform_fee_kes, created_at').eq('affiliate_id', userId),
     supabase.rpc('get_leaderboard', { limit_count: 200 }),
     supabase
       .from('products')
@@ -51,13 +51,13 @@ export async function loadAffiliateOverview(userId: string): Promise<AffiliateOv
   const conversions = conversionsResult.data || [];
   const leaderboard = leaderboardResult.data || [];
 
-  const total = conversions.reduce((sum, row) => sum + toNumber(row.commission_earned_kes), 0);
+  const total = conversions.reduce((sum, row) => sum + Math.max(0, toNumber(row.commission_earned_kes) - toNumber((row as any).platform_fee_kes)), 0);
   const today = conversions.reduce((sum, row) => {
     const createdAt = row.created_at ? new Date(row.created_at) : null;
     if (!createdAt || createdAt < todayStart) {
       return sum;
     }
-    return sum + toNumber(row.commission_earned_kes);
+    return sum + Math.max(0, toNumber(row.commission_earned_kes) - toNumber((row as any).platform_fee_kes));
   }, 0);
   const clicks = links.reduce((sum, row) => sum + toNumber(row.clicks), 0);
 

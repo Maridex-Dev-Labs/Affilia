@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user, require_admin_permission, require_any_admin_permission
 from app.db.supabase import select, update, insert
 from app.services.conversion_service import approve_conversion, reject_conversion
+from app.services.payout_service import confirm_pending_payouts
+from app.services.receipt_service import create_official_receipt
 from app.services.plan_service import activate_profile_plan, reject_profile_plan, revoke_profile_plan, reactivate_profile_plan
 
 
@@ -177,6 +179,14 @@ def approve_deposit(deposit_id: str, user=Depends(get_current_user)):
                 'lifetime_deposits_kes': amount,
             },
         )
+
+    create_official_receipt(
+        receipt_type='deposit',
+        recipient_id=deposit['merchant_id'],
+        amount_kes=amount,
+        generated_by=user['id'],
+        mpesa_reference=deposit.get('mpesa_code'),
+    )
     return {'status': 'approved', 'deposit_id': deposit_id}
 
 @router.get('/sweep/preview')
@@ -251,24 +261,14 @@ def reject_sales_review(conversion_id: str, payload: RejectionPayload, user=Depe
 @router.post('/sweep/confirm')
 def sweep_confirm(user=Depends(get_current_user)):
     require_admin_permission(user, 'payout.manage')
-    payouts = select('payouts', params={'status': 'eq.pending', 'select': '*'})
-    total = sum(float(p.get('amount_kes') or 0) for p in payouts)
-    recipients = len(payouts)
-
-    batch = insert(
-        'sweep_batches',
-        {
-            'total_kes': total,
-            'recipients': recipients,
-            'status': 'completed',
-            'confirmed_at': __import__('datetime').datetime.utcnow().isoformat(),
-        },
-    )
-    if payouts:
-        for payout in payouts:
-            update(
-                'payouts',
-                {'status': 'paid', 'paid_at': __import__('datetime').datetime.utcnow().isoformat()},
-                params={'id': f"eq.{payout['id']}"},
-            )
-    return {'status': 'completed', 'batch': batch[0] if isinstance(batch, list) and batch else None}
+    result = confirm_pending_payouts()
+    batch = result.get('batch')
+    if batch:
+        create_official_receipt(
+            receipt_type='sweep_batch',
+            recipient_id=user['id'],
+            amount_kes=float(batch.get('total_kes') or 0),
+            generated_by=user['id'],
+            mpesa_reference=f"SWEEP-{str(batch.get('id', ''))[:8].upper()}",
+        )
+    return {'status': 'completed', **result}
