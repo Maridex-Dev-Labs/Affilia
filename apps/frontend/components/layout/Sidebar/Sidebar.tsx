@@ -15,19 +15,19 @@ type SidebarProps = {
 };
 
 export default function Sidebar({ activePlanCode, isAffiliateVerified, items, pathname, profile }: SidebarProps) {
-  const rail = profile?.role === 'merchant' ? 'bg-[#BB0000]' : 'bg-[#009A44]';
+  const rail = profile?.role === 'merchant' ? 'bg-[#ff8e8e]' : 'bg-[#67e38b]';
 
   return (
-    <aside className="custom-scrollbar hidden h-[calc(100vh-95px)] w-[288px] shrink-0 overflow-y-auto border-r border-white/8 bg-[linear-gradient(180deg,rgba(20,26,43,0.94),rgba(10,14,23,0.98))] pt-6 lg:sticky lg:top-[95px] lg:flex lg:flex-col">
-      <div className="px-4 pb-6">
-        <div className="rounded-[1.6rem] border border-white/8 bg-black/35 p-5">
+    <aside className="custom-scrollbar hidden h-[calc(100vh-95px)] w-[292px] shrink-0 overflow-y-auto border-r border-white/6 bg-[linear-gradient(180deg,rgba(24,31,48,0.94),rgba(14,20,32,0.98))] pt-5 lg:sticky lg:top-[95px] lg:flex lg:flex-col">
+      <div className="px-4 pb-5">
+        <div className="soft-panel p-5">
           <BrandLogo markClassName="h-12 w-12" textClassName="text-2xl font-black italic text-white" />
-          <p className="mt-3 text-sm text-[#8891a6]">
+          <p className="mt-3 text-sm text-[#a5aec0]">
             {profile?.role === 'affiliate' && !isAffiliateVerified
-              ? 'Verification is required before link generation, commissions, and payouts unlock.'
+              ? 'Complete verification to unlock link sharing, payouts, and the full operating workspace.'
               : !activePlanCode
-                ? 'Activate a package in Settings to unlock this workspace.'
-                : 'Performance, payouts, products, and communication in one workspace.'}
+                ? 'Choose a plan in Settings to unlock more tools and higher operating limits.'
+                : 'Sales, payouts, products, and conversations are organized here in one operating workspace.'}
           </p>
         </div>
       </div>
@@ -39,12 +39,12 @@ export default function Sidebar({ activePlanCode, isAffiliateVerified, items, pa
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex items-center gap-4 rounded-xl p-3 text-sm font-bold transition-colors ${
-                active ? 'bg-black/50 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]' : 'text-[#8f98ab] hover:bg-white/5 hover:text-white'
+              className={`relative flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-bold transition-colors ${
+                active ? 'bg-white/[0.06] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)]' : 'text-[#a6afc0] hover:bg-white/[0.04] hover:text-white'
               }`}
             >
-              {active ? <span className={`absolute inset-y-0 left-0 w-1 rounded-r-md ${rail}`} /> : null}
-              <Icon size={20} color={active ? (profile?.role === 'merchant' ? '#BB0000' : '#009A44') : undefined} weight={active ? 'fill' : 'regular'} />
+              {active ? <span className={`absolute inset-y-2 left-0 w-1 rounded-r-md ${rail}`} /> : null}
+              <Icon size={19} color={active ? (profile?.role === 'merchant' ? '#ff8e8e' : '#67e38b') : undefined} weight={active ? 'fill' : 'regular'} />
               <span>{item.label}</span>
             </Link>
           );
@@ -54,9 +54,9 @@ export default function Sidebar({ activePlanCode, isAffiliateVerified, items, pa
             await supabase.auth.signOut();
             window.location.href = '/login';
           }}
-          className="group mt-auto flex items-center gap-4 rounded-xl p-3 text-sm font-bold text-[#8f98ab] transition-colors hover:bg-[#BB0000]/10 hover:text-white"
+          className="group mt-auto flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-bold text-[#a6afc0] transition-colors hover:bg-white/[0.04] hover:text-white"
         >
-          <SignOut size={20} color="#BB0000" />
+          <SignOut size={20} color="#ff8e8e" />
           <span>Logout</span>
         </button>
       </div>

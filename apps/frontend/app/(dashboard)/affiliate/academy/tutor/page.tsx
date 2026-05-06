@@ -134,7 +134,7 @@ export default function Page() {
         <div className="card-surface p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-white/45">Tutor status</p>
           <div className={`mt-2 text-xl font-bold ${statusTone}`}>{tutorProfile?.status ? tutorProfile.status.toUpperCase() : 'NOT APPLIED'}</div>
-          <p className="mt-2 text-sm text-muted">Tutors are approved manually by academy admins.</p>
+          <p className="mt-2 text-sm text-muted">Tutors are approved through academy review.</p>
         </div>
         <div className="card-surface p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-white/45">Teaching access</p>
@@ -145,7 +145,7 @@ export default function Page() {
 
       {!tutorProfile && !isPremium && (
         <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-5 text-sm text-amber-100">
-          Tutor applications are reserved for premium affiliates. Ask the academy admin to upgrade your membership before applying.
+          Tutor applications are reserved for premium affiliates. Ask for a membership upgrade before applying.
         </div>
       )}
 

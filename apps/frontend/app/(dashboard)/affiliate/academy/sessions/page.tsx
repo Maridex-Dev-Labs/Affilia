@@ -121,7 +121,7 @@ export default function Page() {
 
       {!isPremium && (
         <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Premium sessions are visible but only premium members, tutors, and admins can register. Upgrade is handled by the academy team.
+          Premium sessions are visible, but only premium members and approved tutors can register. Upgrades are handled by the academy team.
         </div>
       )}
 

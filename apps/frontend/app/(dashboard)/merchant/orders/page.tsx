@@ -56,7 +56,7 @@ export default function Page() {
                       Approve
                     </button>
                   ) : (o.entry_mode || 'tracked') === 'manual' ? (
-                    <span className="text-xs text-muted">Admin review</span>
+                    <span className="text-xs text-muted">System review</span>
                   ) : null}
                 </td>
               </tr>

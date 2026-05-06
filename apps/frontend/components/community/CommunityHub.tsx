@@ -527,7 +527,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
       setPostBody('');
       setPostFiles([]);
       setMentionedUserIds([]);
-      setStatus('Forum post submitted. It is visible to you immediately and awaits admin moderation.');
+      setStatus('Forum post submitted. It is visible to you immediately and awaits moderation.');
       await loadForum();
     } catch (error: unknown) {
       setStatus(sanitizeUserFacingError(error, 'We could not publish the forum post right now.'));
@@ -866,7 +866,7 @@ export default function CommunityHub({ role }: CommunityHubProps) {
               <ChatCircleDots size={16} /> {busyKey === 'create-post' ? 'Publishing...' : 'Publish post'}
             </Button>
             <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#cdd4e1]">
-              Forum posts are moderated. Your own pending posts remain visible to you until admin reviews them.
+              Forum posts are moderated. Your own pending posts remain visible to you until the system reviews them.
             </div>
           </div>
 

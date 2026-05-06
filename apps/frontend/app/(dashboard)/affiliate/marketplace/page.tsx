@@ -36,7 +36,7 @@ export default function Page() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black italic">Marketplace</h1>
-          <p className="text-muted mt-2">Only admin-approved listings appear here, and updates stream in real time.</p>
+          <p className="text-muted mt-2">Only system-approved listings appear here, and updates stream in real time.</p>
         </div>
         <button className={`rounded-full px-4 py-2 text-xs font-bold inline-flex items-center gap-2 transition ${highCommissionOnly ? 'button-primary' : 'border border-white/20'}`} onClick={() => setHighCommissionOnly((value) => !value)} type="button">
           <Funnel size={14} /> {highCommissionOnly ? 'Showing 15%+ Commission' : 'Filter 15%+ Commission'}

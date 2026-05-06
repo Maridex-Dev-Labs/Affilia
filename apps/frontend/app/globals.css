@@ -9,43 +9,36 @@
   --kenya-red: #bb0000;
   --kenya-green: #009a44;
   --kenya-white: #ffffff;
-  --bg-navy: #0a0e17;
-  --bg-surface: #141a2b;
-  --bg-surface-soft: rgba(20, 26, 43, 0.88);
+  --bg-navy: #0e1420;
+  --bg-surface: #1a2336;
+  --bg-surface-soft: rgba(26, 35, 54, 0.84);
+  --bg-panel: rgba(18, 24, 38, 0.78);
   --line-soft: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.16);
-  --text-muted: #9ba3b7;
+  --text-muted: #b4bed0;
+  --text-subtle: #8f9ab0;
   color-scheme: dark;
 }
 
 @keyframes kenyaFlagShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 html,
 body {
   min-height: 100%;
   background:
-    radial-gradient(circle at top right, rgba(0, 154, 68, 0.14), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(187, 0, 0, 0.12), transparent 24%),
-    var(--bg-navy);
+    radial-gradient(circle at top right, rgba(0, 154, 68, 0.12), transparent 30%),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.03), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(187, 0, 0, 0.08), transparent 24%),
+    linear-gradient(180deg, #0f1624 0%, #101827 100%);
   color: var(--kenya-white);
   font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -55,9 +48,7 @@ body {
   background-attachment: fixed;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 button,
 a,
@@ -86,19 +77,19 @@ select {
 
 .btn-primary,
 .button-primary {
-  background: linear-gradient(135deg, var(--kenya-black) 0%, var(--kenya-red) 50%, var(--kenya-green) 100%);
+  background: linear-gradient(135deg, rgba(0,0,0,0.94) 0%, rgba(187,0,0,0.92) 48%, rgba(0,154,68,0.86) 100%);
   background-size: 200% 200%;
   animation: shimmer 3s linear infinite;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
   color: white;
   border: none;
 }
 
 .btn-primary:hover,
 .button-primary:hover {
-  box-shadow: 0 15px 40px rgba(0, 154, 68, 0.34);
+  box-shadow: 0 18px 40px rgba(0, 154, 68, 0.22);
   background-position: 100% 100%;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .gradient-text {
@@ -108,27 +99,45 @@ select {
   background-clip: text;
 }
 
-.text-muted {
-  color: var(--text-muted);
-}
+.text-muted { color: var(--text-muted); }
 
-.border-soft {
-  border-color: var(--line-soft);
-}
+.border-soft { border-color: var(--line-soft); }
 
 .card-surface,
 .surface-panel {
-  background: linear-gradient(180deg, rgba(20, 26, 43, 0.96), rgba(11, 14, 23, 0.98));
-  border: 1px solid var(--line-soft);
-  border-radius: 1.5rem;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px);
+  background: linear-gradient(180deg, rgba(24, 31, 48, 0.96), rgba(16, 22, 35, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1.4rem;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(14px);
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
-  border-color: rgba(0, 154, 68, 0.6);
-  box-shadow: 0 20px 40px rgba(0, 154, 68, 0.12);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.soft-panel {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1.25rem;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.95rem 0;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.metric-strip {
+  display: grid;
+  gap: 1rem;
 }
 
 .dashboard-shell {
@@ -141,13 +150,11 @@ select {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at top left, rgba(0, 154, 68, 0.08), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(187, 0, 0, 0.08), transparent 20%);
+    radial-gradient(circle at top left, rgba(0, 154, 68, 0.06), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(187, 0, 0, 0.05), transparent 20%);
 }
 
-.shadow-glow {
-  box-shadow: 0 18px 40px rgba(0, 154, 68, 0.2);
-}
+.shadow-glow { box-shadow: 0 16px 36px rgba(0, 154, 68, 0.16); }
 
 .glass-line {
   background: rgba(255, 255, 255, 0.03);
@@ -158,16 +165,16 @@ select {
 .input-shell {
   width: 100%;
   border-radius: 1rem;
-  border: 1px solid var(--line-soft);
-  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 11, 19, 0.42);
   padding: 0.9rem 1rem;
   color: white;
   outline: none;
 }
 
 .input-shell:focus {
-  border-color: rgba(0, 154, 68, 0.9);
-  box-shadow: 0 0 0 3px rgba(0, 154, 68, 0.15);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 3px rgba(0, 154, 68, 0.12);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -175,9 +182,7 @@ select {
   height: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);

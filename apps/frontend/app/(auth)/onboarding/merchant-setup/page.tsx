@@ -54,21 +54,26 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-5xl card-surface p-8">
+    <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6 py-8">
+      <div className="w-full max-w-5xl surface-panel p-8">
         <BrandLogo className="mb-6" markClassName="h-14 w-14" textClassName="text-2xl font-black italic text-white" priority />
-        <h1 className="text-3xl font-bold">Merchant Setup</h1>
-        <p className="text-muted mt-2">Step {step} of 5</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black italic">Merchant Setup</h1>
+            <p className="text-muted mt-2">Set your business identity, settlement line, and storefront profile.</p>
+          </div>
+          <div className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-[#cad2e0]">Step {step} of 5</div>
+        </div>
 
         {step === 1 && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 surface-panel p-6 space-y-4">
             <input className="input-shell" placeholder="Business Name" value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
             <input className="input-shell" placeholder="Business Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
         )}
 
         {step === 2 && (
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 surface-panel p-6 space-y-3">
             <p className="text-sm text-muted">Upload business registration or verification document.</p>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/20 px-5 py-8 text-center">
               <span className="text-sm font-bold text-white">Choose a file</span>
@@ -80,13 +85,13 @@ export default function Page() {
         )}
 
         {step === 3 && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 surface-panel p-6 space-y-4">
             <input className="input-shell" placeholder="M-Pesa Till / Pochi Number" value={mpesaTill} onChange={(e) => setMpesaTill(e.target.value)} />
           </div>
         )}
 
         {step === 4 && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 surface-panel p-6 space-y-4">
             <textarea className="input-shell min-h-[180px]" placeholder="Store Description" rows={4} value={storeDescription} onChange={(e) => setStoreDescription(e.target.value)} />
           </div>
         )}
@@ -107,7 +112,7 @@ export default function Page() {
 
         {step < 5 ? (
           <div className="mt-6 flex justify-between">
-            <button className="border border-white/20 rounded-full px-4 py-2 text-xs" onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}>Back</button>
+            <button className="rounded-full border border-white/12 px-4 py-2 text-xs" onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}>Back</button>
             <PrimaryButton onClick={() => setStep((s) => s + 1)}>Next</PrimaryButton>
           </div>
         ) : null}

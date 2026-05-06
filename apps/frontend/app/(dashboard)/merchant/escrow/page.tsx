@@ -98,7 +98,7 @@ export default function Page() {
         <ol className="mt-3 space-y-2 text-sm text-muted list-decimal list-inside">
           <li>Send M-Pesa to Maridex Pochi la Biashara: 884422</li>
           <li>Upload M-Pesa confirmation screenshot</li>
-          <li>Funds credited after admin verification (2-4 hours)</li>
+          <li>Funds credited after system verification (2-4 hours)</li>
         </ol>
         <div className="mt-4">
           <MpesaDepositForm onCreated={load} />

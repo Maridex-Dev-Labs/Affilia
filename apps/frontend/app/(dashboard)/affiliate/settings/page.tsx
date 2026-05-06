@@ -119,7 +119,7 @@ export default function Page() {
             : affiliateVerificationStatus === 'under_review'
               ? 'Your verification is under review. Duplicate checks and identity approval must clear before operational features unlock.'
               : affiliateVerificationStatus === 'restricted_duplicate'
-                ? 'This account is flagged for duplicate-risk review. Admin must clear the restriction before you can operate as an affiliate.'
+                ? 'This account is flagged for duplicate-risk review. The system must clear the restriction before you can operate as an affiliate.'
                 : 'Submit your national ID after saving your phone and payout details. Verification prevents duplicate accounts and payout abuse.'}
         </div>
         <div className="flex flex-wrap gap-3">
@@ -146,7 +146,7 @@ export default function Page() {
                   throw profileError;
                 }
                 await affiliateApi.submitVerification({ national_id_number: nationalId });
-                setStatus('Verification submitted. You will unlock affiliate operations immediately after admin approval.');
+                setStatus('Verification submitted. You will unlock affiliate operations immediately after system approval.');
               } catch (error: unknown) {
                 setStatus(sanitizeUserFacingError(error, 'We could not submit affiliate verification right now.'));
               } finally {

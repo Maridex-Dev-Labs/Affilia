@@ -46,7 +46,7 @@ export default function Page() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black italic">My Products</h1>
-          <p className="text-muted mt-2">Listings go live only after admin approval. Updates sync here in real time.</p>
+          <p className="text-muted mt-2">Listings go live only after system approval. Updates sync here in real time.</p>
         </div>
         <Link className="button-primary rounded-full px-5 py-3 text-sm font-semibold inline-flex items-center gap-2" href="/merchant/products/new">
           <Plus size={18} /> Add Product
@@ -94,7 +94,7 @@ export default function Page() {
             </div>
           );
         })}
-        {products.length === 0 ? <div className="card-surface p-6 text-muted xl:col-span-3">No products yet. Create your first listing and send it for admin review.</div> : null}
+        {products.length === 0 ? <div className="card-surface p-6 text-muted xl:col-span-3">No products yet. Create your first listing and send it for review.</div> : null}
       </div>
     </div>
   );

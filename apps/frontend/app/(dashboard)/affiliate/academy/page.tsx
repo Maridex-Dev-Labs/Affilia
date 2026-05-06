@@ -114,43 +114,43 @@ export default function Page() {
 
   const stats = useMemo(
     () => [
-      { label: 'Access Tier', value: isPremium ? 'Premium' : 'Free', hint: isPremium ? 'Advanced coaching unlocked' : 'Upgrade managed by admin' },
-      { label: 'Upcoming Sessions', value: `${sessions.length}`, hint: 'Live coaching calendar' },
-      { label: 'Registered Sessions', value: `${registeredIds.length}`, hint: 'Your current learning plan' },
-      { label: 'Tutor Status', value: tutorProfile?.status ? tutorProfile.status.toUpperCase() : 'NONE', hint: tutorProfile ? 'Your teaching application state' : 'Premium affiliates can apply' },
+      { label: 'Access tier', value: isPremium ? 'Premium' : 'Free', hint: isPremium ? 'Advanced coaching unlocked' : 'Upgrade managed by the system' },
+      { label: 'Upcoming sessions', value: `${sessions.length}`, hint: 'Live coaching calendar' },
+      { label: 'Registered sessions', value: `${registeredIds.length}`, hint: 'Your active learning plan' },
+      { label: 'Tutor status', value: tutorProfile?.status ? tutorProfile.status.toUpperCase() : 'NONE', hint: tutorProfile ? 'Your teaching application state' : 'Premium affiliates can apply' },
     ],
     [isPremium, sessions.length, registeredIds.length, tutorProfile]
   );
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(187,0,0,0.22),_transparent_38%),radial-gradient(circle_at_bottom_right,_rgba(0,154,68,0.2),_transparent_42%),linear-gradient(135deg,_rgba(20,26,43,0.98),_rgba(10,14,23,0.95))] p-8">
-        <div className="grid gap-8 lg:grid-cols-[1.5fr,0.9fr]">
+      <section className="overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top_left,_rgba(187,0,0,0.14),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(0,154,68,0.12),_transparent_34%),linear-gradient(135deg,_rgba(26,35,54,0.98),_rgba(16,22,35,0.96))] px-6 py-7">
+        <div className="grid gap-6 lg:grid-cols-[1.45fr,0.75fr]">
           <div>
-            <p className="inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/80">
+            <p className="inline-flex rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/80">
               Affilia Academy
             </p>
             <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight sm:text-5xl">
               Learn affiliate marketing from proven Kenyan performers.
             </h1>
-            <p className="mt-4 max-w-2xl text-base text-white/70">
+            <p className="mt-4 max-w-2xl text-base leading-8 text-white/72">
               Structured lessons, premium monetization coaching, and live Google Meet sessions run by approved Affilia tutors.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/affiliate/academy/sessions" className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90">
                 Explore Live Sessions
               </Link>
-              <Link href="/affiliate/academy/tutor" className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/5">
+              <Link href="/affiliate/academy/tutor" className="rounded-full border border-white/16 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.04]">
                 {tutorProfile ? 'Tutor Dashboard' : 'Become a Tutor'}
               </Link>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {stats.map((stat) => (
-              <div key={stat.label} className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-white/45">{stat.label}</p>
+              <div key={stat.label} className="soft-panel px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#95a0b5]">{stat.label}</p>
                 <div className="mt-2 text-2xl font-black">{stat.value}</div>
-                <p className="mt-2 text-sm text-white/55">{stat.hint}</p>
+                <p className="mt-2 text-sm text-white/60">{stat.hint}</p>
               </div>
             ))}
           </div>
@@ -158,22 +158,22 @@ export default function Page() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
-        <div className="card-surface p-6">
+        <div className="surface-panel p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold">Fresh Tips & Guidance</h2>
               <p className="mt-1 text-sm text-muted">Daily lessons from approved tutors and the academy desk.</p>
             </div>
           </div>
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 divide-y divide-white/6">
             {posts.map((post) => (
-              <Link key={post.id} href={`/affiliate/academy/posts/${post.slug}`} className="block rounded-3xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:bg-white/[0.05]">
+              <Link key={post.id} href={`/affiliate/academy/posts/${post.slug}`} className="block py-4 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/45">
                   <span>{post.category}</span>
                   <span>{post.access_level}</span>
                   {post.featured && <span className="rounded-full bg-kenya-green/20 px-2 py-1 text-[10px] text-kenya-green">Featured</span>}
                 </div>
-                <h3 className="mt-3 text-lg font-semibold">{post.title}</h3>
+                <h3 className="mt-3 text-lg font-semibold text-white">{post.title}</h3>
                 <p className="mt-2 text-sm text-muted">{post.summary || 'Open the lesson to read the full guidance.'}</p>
                 <p className="mt-3 text-xs text-white/45">By {post.author_name}</p>
               </Link>
@@ -183,7 +183,7 @@ export default function Page() {
         </div>
 
         <div className="space-y-6">
-          <div className="card-surface p-6">
+          <div className="surface-panel p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">Upcoming Sessions</h2>
@@ -193,9 +193,9 @@ export default function Page() {
                 View all
               </Link>
             </div>
-            <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-3">
               {sessions.map((session) => (
-                <div key={session.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div key={session.id} className="soft-panel px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-white/45">{session.level} · {session.access_level}</p>
@@ -211,11 +211,11 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="card-surface p-6">
+          <div className="surface-panel p-6">
             <h2 className="text-xl font-bold">Tutor Spotlight</h2>
             <div className="mt-4 space-y-3">
               {tutors.map((tutor) => (
-                <div key={tutor.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div key={tutor.id} className="soft-panel px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h3 className="font-semibold">{tutor.full_name}</h3>
@@ -232,18 +232,18 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="card-surface p-6">
+      <section className="surface-panel p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-xl font-bold">Your next move</h2>
             <p className="mt-1 text-sm text-muted">
               {isPremium
                 ? 'You can access advanced coaching and apply to teach if your affiliate performance is strong.'
-                : 'Premium access is managed by the academy team. Once upgraded, you unlock advanced classes and tutor applications.'}
+                : 'Premium access is managed by the system. Once upgraded, you unlock advanced classes and tutor applications.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/affiliate/academy/sessions" className="rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:bg-white/5">
+            <Link href="/affiliate/academy/sessions" className="rounded-full border border-white/16 px-4 py-2 text-sm text-white transition hover:bg-white/[0.04]">
               Plan learning
             </Link>
             <Link href="/affiliate/academy/tutor" className="rounded-full bg-gradient-to-r from-black via-red-700 to-green-700 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">

@@ -86,13 +86,13 @@ export async function loadMerchantOverview(userId: string): Promise<MerchantOver
 
   const pendingActions: string[] = [];
   if (pendingProducts > 0) {
-    pendingActions.push(`${pendingProducts} product${pendingProducts === 1 ? '' : 's'} waiting for admin review.`);
+    pendingActions.push(`${pendingProducts} product${pendingProducts === 1 ? '' : 's'} waiting for system review.`);
   }
   if (pendingDeposits > 0) {
-    pendingActions.push(`${pendingDeposits} deposit request${pendingDeposits === 1 ? '' : 's'} pending approval.`);
+    pendingActions.push(`${pendingDeposits} deposit request${pendingDeposits === 1 ? '' : 's'} waiting for system approval.`);
   }
   if (pendingOrders > 0) {
-    pendingActions.push(`${pendingOrders} conversion${pendingOrders === 1 ? '' : 's'} awaiting merchant action.`);
+    pendingActions.push(`${pendingOrders} conversion${pendingOrders === 1 ? '' : 's'} waiting for merchant action.`);
   }
 
   return {

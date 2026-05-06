@@ -130,7 +130,7 @@ export default function Page() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black italic">Edit Product</h1>
-          <p className="text-muted mt-2">Any updated listing returns to the admin review queue before it goes live again.</p>
+          <p className="text-muted mt-2">Any updated listing returns to system review before it goes live again.</p>
         </div>
         <div className="rounded-full border border-white/8 bg-black/30 px-4 py-2 text-sm font-bold capitalize text-white">
           Status: {product.moderation_status || 'pending'}
@@ -177,7 +177,7 @@ export default function Page() {
           </div>
           <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#d0d6e2]">
             <div className="mb-3 flex items-center gap-2 font-bold text-white"><ClockCounterClockwise size={18} /> Review notes</div>
-            <p>{product.moderation_notes || 'No admin notes yet. Keep assets clean and product-focused.'}</p>
+            <p>{product.moderation_notes || 'No review notes yet. Keep assets clean and product-focused.'}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#d0d6e2]">
             <div className="mb-3 flex items-center gap-2 font-bold text-white"><ArrowClockwise size={18} /> Media guidelines</div>
@@ -191,7 +191,7 @@ export default function Page() {
             <div>
               <div className="mb-2 font-bold text-white">Record Affiliate Sale</div>
               <p className="text-sm text-[#9ca5b9]">
-                Use the affiliate code shared from My Links. Affilia reserves the commission from escrow immediately and sends the sale to admin review before payout.
+                Use the affiliate code shared from My Links. Affilia reserves the commission from escrow immediately and sends the sale to system review before payout.
               </p>
             </div>
             <input className="input-shell" placeholder="Affiliate / Promo code" value={saleForm.affiliate_code} onChange={(e) => setSaleForm((current) => ({ ...current, affiliate_code: e.target.value.toUpperCase() }))} />
@@ -200,7 +200,7 @@ export default function Page() {
               <input className="input-shell" placeholder="Quantity" value={saleForm.quantity} onChange={(e) => setSaleForm((current) => ({ ...current, quantity: e.target.value }))} />
             </div>
             <input className="input-shell" placeholder="Customer / Order reference" value={saleForm.customer_reference} onChange={(e) => setSaleForm((current) => ({ ...current, customer_reference: e.target.value }))} />
-            <textarea className="input-shell min-h-[110px]" placeholder="Notes for admin review (optional)" value={saleForm.notes} onChange={(e) => setSaleForm((current) => ({ ...current, notes: e.target.value }))} />
+            <textarea className="input-shell min-h-[110px]" placeholder="Notes for system review (optional)" value={saleForm.notes} onChange={(e) => setSaleForm((current) => ({ ...current, notes: e.target.value }))} />
             {saleStatus ? <div className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-sm text-[#d4dbe7]">{saleStatus}</div> : null}
             <Button loading={submittingSale} loadingText="Submitting sale..." onClick={submitManualSale}>
               Submit Affiliate Sale

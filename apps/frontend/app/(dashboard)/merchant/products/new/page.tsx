@@ -93,7 +93,7 @@ export default function Page() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-black italic">Submit Product</h1>
-        <p className="text-muted mt-2">Every new product is reviewed by admin before it appears in the marketplace.</p>
+        <p className="text-muted mt-2">Every new product passes system review before it appears in the marketplace.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -131,7 +131,7 @@ export default function Page() {
           ) : null}
           <label className="flex items-start gap-3 rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#c0c7d6]">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
-            <span>I confirm these media assets meet the marketplace guidelines and are ready for admin review.</span>
+            <span>I confirm these media assets meet the marketplace guidelines and are ready for system review.</span>
           </label>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <Button loading={saving} loadingText="Submitting for review..." onClick={create} className="w-full justify-center">
@@ -151,7 +151,7 @@ export default function Page() {
             ))}
           </div>
           <div className="mt-6 rounded-2xl border border-[#BB0000]/15 bg-[#BB0000]/8 p-4 text-sm text-[#f0c5c5]">
-            If you edit an approved listing later, it will return to the pending review queue until admin approves it again.
+            If you edit an approved listing later, it will return to review until the system approves it again.
           </div>
         </div>
       </div>

@@ -140,7 +140,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
       const response = await contractApi.submit(payload);
       setCurrent(response.agreement);
       setContractStatus(response.agreement?.status || 'under_review');
-      setStatusMessage('Agreement submitted. It is now waiting for admin review.');
+      setStatusMessage('Agreement submitted. It is now waiting for system review.');
       await afterSubmit?.();
     } catch (err: any) {
       setError(sanitizeUserFacingError(err, 'We could not submit the agreement right now.'));
@@ -150,7 +150,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
   };
 
   return (
-    <div className="card-surface p-6 space-y-6">
+    <div className="surface-panel p-6 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className="text-xl font-black italic text-white">{meta.title}</h3>
@@ -167,21 +167,23 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
+        <div className="surface-panel p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#8f98ab]">Preview</div>
-              <div className="mt-1 text-sm text-[#d5dbe8]">Read the summary here and download the full PDF before signing.</div>
+              <div className="mt-1 text-sm text-[#d5dbe8]">Review the summary here and download the full PDF before signing.</div>
             </div>
             <Button variant="secondary" size="compact" onClick={downloadTemplate}>Download PDF</Button>
           </div>
-          <div className="mt-5 space-y-4">
-            {meta.summary.map((item) => (
-              <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-[#d5dbe8]">{item}</div>
-            ))}
+          <div className="mt-5 space-y-5">
+            <div className="soft-panel p-4">
+              {meta.summary.map((item) => (
+                <div key={item} className="info-row text-sm text-[#d5dbe8]">{item}</div>
+              ))}
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               {meta.clauses.map((clause) => (
-                <div key={clause.heading} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <div key={clause.heading} className="soft-panel p-4">
                   <div className="font-bold text-white">{clause.heading}</div>
                   <div className="mt-2 text-sm text-[#aab2c5]">{clause.detail}</div>
                 </div>
@@ -190,7 +192,7 @@ export default function LegalAgreementForm({ agreementType, mode, submitLabel, b
           </div>
         </div>
 
-        <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5 space-y-4">
+        <div className="surface-panel p-5 space-y-4">
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#8f98ab]">Acknowledgement</div>
             <div className="mt-1 text-sm text-[#d5dbe8]">All confirmations are required before the agreement can be submitted.</div>
