@@ -1,5 +1,6 @@
 import { BackendUnavailableError, apiClient } from './client';
 import { supabase } from '@/lib/supabase/client';
+import { submitMerchantAffiliateSaleFallback } from './fallbacks';
 
 type CreateProductPayload = {
   title: string;
@@ -41,24 +42,28 @@ export const merchantApi = {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) {
-        throw error;
+        return await submitMerchantAffiliateSaleFallback(payload);
       }
 
-      const response = await fetch('/api/internal/merchant-sales', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      try {
+        const response = await fetch('/api/internal/merchant-sales', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
 
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(typeof body.detail === 'string' ? body.detail : 'We could not submit the affiliate sale right now.');
+        const body = await response.json().catch(() => ({}));
+        if (response.ok) {
+          return body;
+        }
+      } catch {
+        // fall through to direct client fallback
       }
 
-      return body;
+      return await submitMerchantAffiliateSaleFallback(payload);
     }
   },
 };

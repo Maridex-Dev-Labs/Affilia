@@ -48,6 +48,169 @@ export async function submitDepositFallback(payload: { amount_kes: number; mpesa
   return { status: 'submitted' };
 }
 
+
+export async function submitMerchantAffiliateSaleFallback(payload: {
+  product_id: string;
+  affiliate_code: string;
+  sale_amount_kes: number;
+  quantity: number;
+  customer_reference: string;
+  notes?: string | null;
+}) {
+  const userId = await requireUserId();
+  const affiliateCode = payload.affiliate_code.trim().toUpperCase();
+  const customerReference = payload.customer_reference.trim();
+  const quantity = Math.max(1, Math.trunc(Number(payload.quantity || 1)));
+  const unitSaleAmount = toNumber(payload.sale_amount_kes);
+
+  if (!payload.product_id) throw new Error('Product selection mismatch.');
+  if (!affiliateCode) throw new Error('Enter an affiliate or promo code.');
+  if (unitSaleAmount <= 0) throw new Error('Enter a valid sale amount.');
+  if (!customerReference) throw new Error('Enter a customer or order reference.');
+
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', payload.product_id)
+    .eq('merchant_id', userId)
+    .eq('is_active', true)
+    .eq('moderation_status', 'approved')
+    .single();
+  if (productError || !product) {
+    throw new Error('Product not found or not eligible for affiliate sales.');
+  }
+
+  const { data: link, error: linkError } = await supabase
+    .from('affiliate_links')
+    .select('*')
+    .eq('unique_code', affiliateCode)
+    .eq('product_id', payload.product_id)
+    .single();
+  if (linkError || !link) {
+    throw new Error('Affiliate code not found for this product.');
+  }
+  if (link.status !== 'active') {
+    throw new Error('This affiliate code is not active.');
+  }
+
+  const { data: affiliate, error: affiliateError } = await supabase
+    .from('profiles')
+    .select('id, full_name, business_name, role, affiliate_verification_status, active_plan_code, plan_status')
+    .eq('id', link.affiliate_id)
+    .eq('role', 'affiliate')
+    .single();
+  if (affiliateError || !affiliate) {
+    throw new Error('Affiliate profile not found.');
+  }
+  if (affiliate.affiliate_verification_status !== 'verified') {
+    throw new Error('The affiliate tied to this code is not verified yet.');
+  }
+  const affiliatePlanCode = affiliate.active_plan_code || 'affiliate_starter';
+  const affiliatePlanStatus = affiliate.plan_status || 'active';
+  if (!affiliatePlanCode || affiliatePlanStatus !== 'active') {
+    throw new Error('The affiliate tied to this code does not have an active package.');
+  }
+
+  const { data: duplicateRows, error: duplicateError } = await supabase
+    .from('conversions')
+    .select('id')
+    .eq('merchant_id', userId)
+    .eq('product_id', payload.product_id)
+    .eq('customer_reference', customerReference)
+    .limit(1);
+  if (duplicateError) {
+    throw new Error(duplicateError.message);
+  }
+  if ((duplicateRows || []).length > 0) {
+    throw new Error('This customer or order reference has already been submitted.');
+  }
+
+  const { data: escrow, error: escrowError } = await supabase
+    .from('merchant_escrow')
+    .select('*')
+    .eq('merchant_id', userId)
+    .single();
+  if (escrowError || !escrow) {
+    throw new Error('Fund your merchant escrow before recording affiliate sales.');
+  }
+
+  const orderValue = Number((unitSaleAmount * quantity).toFixed(2));
+  const commissionPercent = toNumber(product.commission_percent);
+  const commission = Number(((orderValue * commissionPercent) / 100).toFixed(2));
+  const platformFee = Number((commission * 0.1).toFixed(2));
+  const balance = toNumber(escrow.balance_kes);
+  const reservedBalance = toNumber(escrow.reserved_balance_kes);
+
+  if (balance < commission) {
+    throw new Error('Your available escrow balance is too low for this commission.');
+  }
+
+  const { error: escrowUpdateError } = await supabase
+    .from('merchant_escrow')
+    .update({
+      balance_kes: balance - commission,
+      reserved_balance_kes: reservedBalance + commission,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', escrow.id)
+    .eq('merchant_id', userId);
+  if (escrowUpdateError) {
+    throw new Error(escrowUpdateError.message);
+  }
+
+  const { data: conversionRows, error: conversionError } = await supabase
+    .from('conversions')
+    .insert({
+      link_id: link.id,
+      affiliate_id: affiliate.id,
+      merchant_id: userId,
+      product_id: payload.product_id,
+      order_value_kes: orderValue,
+      commission_earned_kes: commission,
+      platform_fee_kes: platformFee,
+      status: 'pending',
+      merchant_approved: true,
+      quantity,
+      customer_reference: customerReference,
+      entry_mode: 'manual',
+      submitted_by: userId,
+      reserved_commission_kes: commission,
+      review_notes: payload.notes || null,
+    })
+    .select('*')
+    .limit(1);
+
+  if (conversionError) {
+    await supabase
+      .from('merchant_escrow')
+      .update({
+        balance_kes: balance,
+        reserved_balance_kes: reservedBalance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', escrow.id)
+      .eq('merchant_id', userId);
+
+    if ((conversionError as any).code === '23505') {
+      throw new Error('This customer or order reference has already been submitted.');
+    }
+    throw new Error(conversionError.message);
+  }
+
+  return {
+    status: 'submitted',
+    conversion: conversionRows?.[0] || null,
+    commission_kes: commission,
+    commission_percent: commissionPercent,
+    platform_fee_kes: platformFee,
+    order_value_kes: orderValue,
+    unit_sale_amount_kes: unitSaleAmount,
+    quantity,
+    affiliate_id: affiliate.id,
+    affiliate_name: affiliate.full_name || affiliate.business_name || affiliate.id,
+  };
+}
+
 export async function listReceiptsFallback() {
   const userId = await requireUserId();
   const { data, error } = await supabase
