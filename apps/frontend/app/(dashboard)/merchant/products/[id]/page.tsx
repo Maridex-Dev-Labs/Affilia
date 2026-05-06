@@ -45,7 +45,7 @@ export default function Page() {
     return Number.isFinite(parsed) ? parsed : 0;
   }, [product?.commission_percent]);
   const estimatedAffiliatePayout = useMemo(() => Number(((totalOrderValue * commissionPercent) / 100).toFixed(2)), [totalOrderValue, commissionPercent]);
-  const estimatedPlatformFee = useMemo(() => Number((estimatedAffiliatePayout * 0.1).toFixed(2)), [estimatedAffiliatePayout]);
+  const estimatedPlatformFee = useMemo(() => Number((estimatedAffiliatePayout * 0.05).toFixed(2)), [estimatedAffiliatePayout]);
 
   useEffect(() => {
     supabase.from('products').select('*').eq('id', params.id).single().then(({ data }) => setProduct(data));
@@ -226,14 +226,16 @@ export default function Page() {
               <input className="input-shell" placeholder="Quantity" value={saleForm.quantity} onChange={(e) => setSaleForm((current) => ({ ...current, quantity: e.target.value }))} />
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-[#d0d6e2]">
-              <div className="mb-3 font-bold text-white">Payout preview</div>
+              <div className="mb-1 font-bold text-white">Payout preview</div>
+              <div className="mb-3 text-xs text-[#9ca5b9]">Processing fee is calculated from the affiliate payout, not the full sale.</div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="info-row"><span>Commission rate</span><strong>{commissionPercent}% of total sale</strong></div>
                 <div className="info-row"><span>Total order value</span><strong>KES {totalOrderValue.toLocaleString()}</strong></div>
                 <div className="info-row"><span>Affiliate payout</span><strong className="text-[#7ef0a2]">KES {estimatedAffiliatePayout.toLocaleString()}</strong></div>
-                <div className="info-row"><span>Platform fee</span><strong>KES {estimatedPlatformFee.toLocaleString()}</strong></div>
+                <div className="info-row"><span>Processing fee</span><strong>KES {estimatedPlatformFee.toLocaleString()}</strong></div>
               </div>
             </div>
+            <p className="text-xs text-[#9ca5b9]">Processing fee is calculated from the affiliate payout, not the full sale.</p>
             <input className="input-shell" placeholder="Customer / Order reference" value={saleForm.customer_reference} onChange={(e) => setSaleForm((current) => ({ ...current, customer_reference: e.target.value }))} />
             <textarea className="input-shell min-h-[110px]" placeholder="Notes for system review (optional)" value={saleForm.notes} onChange={(e) => setSaleForm((current) => ({ ...current, notes: e.target.value }))} />
             {saleStatus ? <div className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-sm text-[#d4dbe7]">{saleStatus}</div> : null}
