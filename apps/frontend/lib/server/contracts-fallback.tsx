@@ -2,25 +2,11 @@
 import 'server-only';
 
 import React from 'react';
-import { pdf, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 
 import { contractMeta, type AgreementType } from '@/lib/legal/contracts';
+import { ContractPdfDocument } from '@/lib/legal/contract-pdf';
 import { createServiceRoleClient } from './supabase-service';
-
-const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 11, color: '#101522', backgroundColor: '#f6f0e6' },
-  header: { marginBottom: 18, borderBottomWidth: 2, borderBottomColor: '#0f8a43', paddingBottom: 10 },
-  eyebrow: { fontSize: 10, color: '#8d1b1b', letterSpacing: 1.2, marginBottom: 6 },
-  title: { fontSize: 22, fontWeight: 700, marginBottom: 6 },
-  subtitle: { fontSize: 10, color: '#566070', lineHeight: 1.5 },
-  section: { marginTop: 18 },
-  sectionTitle: { fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#0a6a36' },
-  card: { borderWidth: 1, borderColor: '#d8d2c4', borderRadius: 8, padding: 12, marginBottom: 10, backgroundColor: '#fffdf8' },
-  itemTitle: { fontSize: 11, fontWeight: 700, marginBottom: 4 },
-  body: { fontSize: 10, lineHeight: 1.6, color: '#313b4c' },
-  footer: { position: 'absolute', left: 40, right: 40, bottom: 24, fontSize: 9, color: '#707887', textAlign: 'center' },
-  watermark: { position: 'absolute', top: '44%', left: '17%', fontSize: 88, color: '#00000010', transform: 'rotate(-18deg)' },
-});
 
 function buildContractSnapshot(agreementType: AgreementType, profile: Record<string, any>) {
   const meta = contractMeta[agreementType];
@@ -180,51 +166,5 @@ export async function submitAgreement(userId: string, payload: Record<string, an
 }
 
 export async function generateAgreementPdf(agreementType: AgreementType) {
-  const meta = contractMeta[agreementType];
-  const title = agreementType === 'merchant' ? 'Affilia Merchant Agreement' : 'Affilia Affiliate Agreement';
-
-  const doc = (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.watermark}>AFFILIA</Text>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>AFFILIA LEGAL AGREEMENT</Text>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{meta.blurb}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Key Summary</Text>
-          {meta.summary.map((item) => (
-            <View key={item} style={styles.card}>
-              <Text style={styles.body}>{item}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Core Clauses</Text>
-          {meta.clauses.map((clause) => (
-            <View key={clause.heading} style={styles.card}>
-              <Text style={styles.itemTitle}>{clause.heading}</Text>
-              <Text style={styles.body}>{clause.detail}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Required Acknowledgements</Text>
-          {meta.acknowledgements.map((item) => (
-            <View key={item.key} style={styles.card}>
-              <Text style={styles.body}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={styles.footer}>Affilia fallback agreement preview. Primary signed PDF generation remains on the API service.</Text>
-      </Page>
-    </Document>
-  );
-
-  return pdf(doc).toBuffer();
+  return pdf(<ContractPdfDocument agreementType={agreementType} />).toBuffer();
 }

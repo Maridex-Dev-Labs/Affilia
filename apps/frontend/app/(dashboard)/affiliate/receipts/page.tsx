@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { receiptsApi } from '@/lib/api/receipts';
 import { isBackendUnavailableError } from '@/lib/api/client';
@@ -46,7 +47,7 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Receipts</h1>
+      <div><h1 className="text-3xl font-black italic">Receipts</h1><p className="mt-2 text-sm text-muted">Official Affilia receipts for payouts and account-side transaction records.</p></div>
       <div className="card-surface p-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-muted">
@@ -55,6 +56,7 @@ export default function Page() {
               <th className="py-2">Amount</th>
               <th className="py-2">Type</th>
               <th className="py-2">Date</th>
+              <th className="py-2">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -64,11 +66,16 @@ export default function Page() {
                 <td className="py-3">KES {r.amount_kes}</td>
                 <td className="py-3">{r.receipt_type}</td>
                 <td className="py-3">{new Date(r.generated_at).toLocaleDateString()}</td>
+                <td className="py-3">
+                  <Link className="text-xs underline" href={`/affiliate/receipts/${r.id}`}>
+                    View
+                  </Link>
+                </td>
               </tr>
             ))}
             {receipts.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-6 text-muted">
+                <td colSpan={5} className="py-6 text-muted">
                   No receipts yet.
                 </td>
               </tr>

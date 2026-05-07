@@ -47,7 +47,7 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Receipts</h1>
+      <div><h1 className="text-3xl font-black italic">Receipts</h1><p className="mt-2 text-sm text-muted">Deposits, payouts, and sweep records rendered in Affilia's official receipt format.</p></div>
       <div className="card-surface p-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-muted">
