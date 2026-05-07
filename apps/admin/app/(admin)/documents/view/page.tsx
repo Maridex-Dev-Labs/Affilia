@@ -59,27 +59,43 @@ export default function Page() {
       try {
         let resolvedUrl = rawUrl;
         if (!resolvedUrl) {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData.session?.access_token;
-          if (!token) throw new Error('Admin session unavailable.');
+          const clientSign = await supabase.storage.from(bucket).createSignedUrl(path, 300);
+          if (clientSign.data?.signedUrl) {
+            resolvedUrl = clientSign.data.signedUrl;
+          } else {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+            if (!token) {
+              throw new Error(clientSign.error?.message || 'Admin session unavailable.');
+            }
 
-          const response = await fetch('/api/verification-assets/sign', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ bucket, path, expiresIn: 300 }),
-          });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Failed to sign document.');
-          resolvedUrl = data.signedUrl;
+            const response = await fetch('/api/verification-assets/sign', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ bucket, path, expiresIn: 300 }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(
+                typeof data.error === 'string'
+                  ? data.error
+                  : clientSign.error?.message || 'Failed to sign document.'
+              );
+            }
+            resolvedUrl = data.signedUrl;
+          }
         }
 
         setSignedUrl(resolvedUrl);
 
         if (isText) {
           const previewResponse = await fetch(resolvedUrl);
+          if (!previewResponse.ok) {
+            throw new Error('Failed to load document preview.');
+          }
           const previewText = await previewResponse.text();
           setTextPreview(previewText);
         }
