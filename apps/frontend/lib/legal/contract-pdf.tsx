@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Page, StyleSheet, Svg, Path, Rect, Text, View } from '@react-pdf/renderer';
 
 import { contractMeta, type AgreementType } from '@/lib/legal/contracts';
 
@@ -12,11 +12,11 @@ const styles = StyleSheet.create({
   topWhite: { flex: 1, backgroundColor: '#ffffff' },
   topGreen: { flex: 4, backgroundColor: '#0f8a43' },
   watermarkWrap: { position: 'absolute', top: 240, left: 95, width: 390, height: 300, alignItems: 'center', justifyContent: 'center', opacity: 0.07, transform: 'rotate(-16deg)' },
-  watermarkLogo: { width: 180, height: 180, marginBottom: 10 },
+  watermarkLogoWrap: { marginBottom: 10 },
   watermarkText: { fontSize: 44, fontWeight: 800, letterSpacing: 3, color: '#132033' },
   header: { marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d7d0c3', paddingBottom: 12 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  logo: { width: 30, height: 30 },
+  logoWrap: { width: 30, height: 30 },
   eyebrow: { fontSize: 10, color: '#8d1b1b', letterSpacing: 1.5, marginBottom: 4, textTransform: 'uppercase' },
   title: { fontSize: 23, fontWeight: 800, marginBottom: 6 },
   subtitle: { fontSize: 10, color: '#5e6879', lineHeight: 1.5 },
@@ -29,10 +29,22 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 8, color: '#707887' },
 });
 
+
+function AffiliaMark({ size = 30, opacity = 1 }: { size?: number; opacity?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" style={{ opacity }}>
+      <Rect x={6} y={6} width={52} height={52} rx={10} fill="#0b1018" />
+      <Rect x={14} y={18} width={36} height={8} rx={3} fill="#bb1e1e" />
+      <Rect x={14} y={38} width={36} height={8} rx={3} fill="#0f8a43" />
+      <Path d="M16 47 L29 17 L37 17 L24 47 Z" fill="#ffffff" />
+      <Path d="M31 47 L39 28 L48 47 L40 47 L35.5 36 L31 47 Z" fill="#ffffff" />
+    </Svg>
+  );
+}
+
 export function ContractPdfDocument({ agreementType }: { agreementType: AgreementType }) {
   const meta = contractMeta[agreementType];
   const title = agreementType === 'merchant' ? 'Affilia Merchant Agreement' : 'Affilia Affiliate Agreement';
-  const logoSrc = '/images/logo/affilia-mark.png';
 
   return (
     <Document>
@@ -45,13 +57,13 @@ export function ContractPdfDocument({ agreementType }: { agreementType: Agreemen
         </View>
 
         <View style={styles.watermarkWrap} fixed>
-          <Image src={logoSrc} style={styles.watermarkLogo} />
+          <View style={styles.watermarkLogoWrap}><AffiliaMark size={180} opacity={0.85} /></View>
           <Text style={styles.watermarkText}>AFFILIA</Text>
         </View>
 
         <View style={styles.header}>
           <View style={styles.brandRow}>
-            <Image src={logoSrc} style={styles.logo} />
+            <View style={styles.logoWrap}><AffiliaMark size={30} /></View>
             <Text style={styles.eyebrow}>Affilia Legal Agreement</Text>
           </View>
           <Text style={styles.title}>{title}</Text>

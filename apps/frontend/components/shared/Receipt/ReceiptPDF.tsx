@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Page, StyleSheet, Svg, Path, Rect, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: {
@@ -34,9 +34,7 @@ const styles = StyleSheet.create({
     opacity: 0.08,
     transform: 'rotate(-18deg)',
   },
-  watermarkLogo: {
-    width: 210,
-    height: 210,
+  watermarkLogoWrap: {
     marginBottom: 12,
   },
   watermarkText: {
@@ -60,7 +58,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
-  logo: {
+  logoWrap: {
     width: 34,
     height: 34,
   },
@@ -200,6 +198,19 @@ const styles = StyleSheet.create({
   },
 });
 
+
+function AffiliaMark({ size = 34, opacity = 1 }: { size?: number; opacity?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" style={{ opacity }}>
+      <Rect x={6} y={6} width={52} height={52} rx={10} fill="#0b1018" />
+      <Rect x={14} y={18} width={36} height={8} rx={3} fill="#bb1e1e" />
+      <Rect x={14} y={38} width={36} height={8} rx={3} fill="#0f8a43" />
+      <Path d="M16 47 L29 17 L37 17 L24 47 Z" fill="#ffffff" />
+      <Path d="M31 47 L39 28 L48 47 L40 47 L35.5 36 L31 47 Z" fill="#ffffff" />
+    </Svg>
+  );
+}
+
 function formatType(value) {
   return String(value || 'receipt').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -221,7 +232,6 @@ export default function ReceiptPDF({
   generatedAt?: string;
   verificationHash?: string;
 }) {
-  const logoSrc = '/images/logo/affilia-mark.png';
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -233,14 +243,14 @@ export default function ReceiptPDF({
         </View>
 
         <View style={styles.watermarkWrap} fixed>
-          <Image src={logoSrc} style={styles.watermarkLogo} />
+          <View style={styles.watermarkLogoWrap}><AffiliaMark size={210} opacity={0.85} /></View>
           <Text style={styles.watermarkText}>AFFILIA</Text>
         </View>
 
         <View style={styles.header}>
           <View>
             <View style={styles.brandRow}>
-              <Image src={logoSrc} style={styles.logo} />
+              <View style={styles.logoWrap}><AffiliaMark size={34} /></View>
               <Text style={styles.eyebrow}>Affilia Finance Desk</Text>
             </View>
             <Text style={styles.title}>Official Receipt</Text>
