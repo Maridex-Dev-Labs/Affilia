@@ -55,6 +55,17 @@ const SAFE_MESSAGES = [
   /^this customer or order reference/i,
   /^your available escrow balance/i,
   /^you have reached today’s free link limit/i,
+  /^save your business name/i,
+  /^save your primary phone number/i,
+  /^save your payout phone/i,
+  /^enter your national id number/i,
+  /^upload both sides of your national id/i,
+  /^upload the front side of your national id/i,
+  /^upload the back side of your national id/i,
+  /^upload your business document/i,
+  /^that phone number is already in use/i,
+  /^that payout phone is already in use/i,
+  /^this affiliate account has been flagged/i,
 ];
 
 export function isTechnicalErrorMessage(message: string) {

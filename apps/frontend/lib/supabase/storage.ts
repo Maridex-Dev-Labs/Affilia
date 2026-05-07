@@ -36,6 +36,10 @@ export async function uploadMerchantDoc(userId: string, file: File) {
   return uploadPrivateToBucket(buckets.merchantDocs, userId, file);
 }
 
+export async function uploadVerificationDocument(userId: string, file: File) {
+  return uploadPrivateToBucket(buckets.merchantDocs, userId, file);
+}
+
 export async function uploadProductImage(userId: string, file: File) {
   return uploadToBucket(buckets.productImages, userId, file);
 }

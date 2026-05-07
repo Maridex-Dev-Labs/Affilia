@@ -21,20 +21,33 @@ router = APIRouter()
 @router.get('/verification-queue')
 def verification_queue(user=Depends(get_current_user)):
     require_any_admin_permission(user, ['merchant.verify', 'affiliate.verify'])
-    merchant_items = select(
+    merchant_rows = select(
         'profiles',
         params={
-            'business_verified': 'eq.false',
             'role': 'eq.merchant',
             'select': 'id,business_name,full_name,phone_number,business_verified,mpesa_till,documents,avatar_url,contract_status,store_description,current_agreement:current_agreement_id(id,signed_contract_storage_path,signed_contract_filename,digital_signature,acceptance_method)',
+            'order': 'created_at.desc',
         },
     )
+    merchant_items = []
+    for row in merchant_rows:
+        documents = row.get('documents') or {}
+        verification = documents.get('merchant_verification') or {}
+        status_value = verification.get('status') or ('verified' if row.get('business_verified') else 'not_started')
+        if status_value not in ('submitted', 'under_review', 'revision_requested', 'rejected'):
+            continue
+        merchant_items.append({
+            **row,
+            'merchant_verification_status': status_value,
+            'merchant_verification_notes': verification.get('notes'),
+        })
+
     affiliate_items = select(
         'profiles',
         params={
             'role': 'eq.affiliate',
-            'affiliate_verification_status': 'in.(submitted,under_review,revision_requested,restricted_duplicate)',
-            'select': 'id,full_name,phone_number,payout_phone,national_id_number,affiliate_verification_status,duplicate_flag_reason,affiliate_verification_notes,avatar_url,contract_status,current_agreement:current_agreement_id(id,signed_contract_storage_path,signed_contract_filename,digital_signature,acceptance_method)',
+            'affiliate_verification_status': 'in.(submitted,under_review,revision_requested,restricted_duplicate,rejected)',
+            'select': 'id,full_name,phone_number,payout_phone,national_id_number,affiliate_verification_status,duplicate_flag_reason,affiliate_verification_notes,avatar_url,contract_status,documents,current_agreement:current_agreement_id(id,signed_contract_storage_path,signed_contract_filename,digital_signature,acceptance_method)',
             'order': 'created_at.desc',
         },
     )
@@ -43,13 +56,54 @@ def verification_queue(user=Depends(get_current_user)):
 @router.post('/verify-merchant/{merchant_id}')
 def verify_merchant(merchant_id: str, user=Depends(get_current_user)):
     require_admin_permission(user, 'merchant.verify')
-    update('profiles', {'business_verified': True}, params={'id': f'eq.{merchant_id}'})
+    profiles = select('profiles', params={'id': f'eq.{merchant_id}', 'role': 'eq.merchant', 'select': 'id,documents', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Merchant not found')
+    documents = profiles[0].get('documents') or {}
+    merchant_documents = dict(documents.get('merchant_verification') or {})
+    merchant_documents.update({
+        'status': 'verified',
+        'reviewed_at': __import__('datetime').datetime.utcnow().isoformat(),
+        'reviewed_by': user['id'],
+    })
+    documents['merchant_verification'] = merchant_documents
+    update('profiles', {'business_verified': True, 'documents': documents}, params={'id': f'eq.{merchant_id}'})
     return {'status': 'approved', 'merchant_id': merchant_id}
+
+
+@router.post('/verify-merchant/{merchant_id}/reject')
+def reject_merchant(merchant_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'merchant.verify')
+    profiles = select('profiles', params={'id': f'eq.{merchant_id}', 'role': 'eq.merchant', 'select': 'id,documents', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Merchant not found')
+    documents = profiles[0].get('documents') or {}
+    merchant_documents = dict(documents.get('merchant_verification') or {})
+    merchant_documents.update({
+        'status': 'revision_requested',
+        'notes': payload.reason,
+        'reviewed_at': __import__('datetime').datetime.utcnow().isoformat(),
+        'reviewed_by': user['id'],
+    })
+    documents['merchant_verification'] = merchant_documents
+    update('profiles', {'business_verified': False, 'documents': documents}, params={'id': f'eq.{merchant_id}'})
+    return {'status': 'revision_requested', 'merchant_id': merchant_id}
 
 
 @router.post('/verify-affiliate/{affiliate_id}')
 def verify_affiliate(affiliate_id: str, payload: ReviewPayload, user=Depends(get_current_user)):
     require_admin_permission(user, 'affiliate.verify')
+    profiles = select('profiles', params={'id': f'eq.{affiliate_id}', 'role': 'eq.affiliate', 'select': 'documents', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Affiliate not found')
+    documents = profiles[0].get('documents') or {}
+    affiliate_documents = dict(documents.get('affiliate_verification') or {})
+    affiliate_documents.update({
+        'status': 'verified',
+        'reviewed_at': __import__('datetime').datetime.utcnow().isoformat(),
+        'reviewed_by': user['id'],
+    })
+    documents['affiliate_verification'] = affiliate_documents
     rows = update(
         'profiles',
         {
@@ -58,6 +112,7 @@ def verify_affiliate(affiliate_id: str, payload: ReviewPayload, user=Depends(get
             'affiliate_verified_at': __import__('datetime').datetime.utcnow().isoformat(),
             'affiliate_verified_by': user['id'],
             'duplicate_flag_reason': None,
+            'documents': documents,
         },
         params={'id': f'eq.{affiliate_id}', 'role': 'eq.affiliate'},
     )
@@ -69,11 +124,24 @@ def verify_affiliate(affiliate_id: str, payload: ReviewPayload, user=Depends(get
 @router.post('/verify-affiliate/{affiliate_id}/reject')
 def reject_affiliate_verification(affiliate_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
     require_admin_permission(user, 'affiliate.verify')
+    profiles = select('profiles', params={'id': f'eq.{affiliate_id}', 'role': 'eq.affiliate', 'select': 'documents', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Affiliate not found')
+    documents = profiles[0].get('documents') or {}
+    affiliate_documents = dict(documents.get('affiliate_verification') or {})
+    affiliate_documents.update({
+        'status': 'revision_requested',
+        'notes': payload.reason,
+        'reviewed_at': __import__('datetime').datetime.utcnow().isoformat(),
+        'reviewed_by': user['id'],
+    })
+    documents['affiliate_verification'] = affiliate_documents
     rows = update(
         'profiles',
         {
-            'affiliate_verification_status': 'rejected',
+            'affiliate_verification_status': 'revision_requested',
             'affiliate_verification_notes': payload.reason,
+            'documents': documents,
         },
         params={'id': f'eq.{affiliate_id}', 'role': 'eq.affiliate'},
     )

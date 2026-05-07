@@ -17,6 +17,7 @@ type AffiliateDetail = {
   affiliate_verification_notes?: string | null;
   avatar_url?: string | null;
   contract_status?: string | null;
+  documents?: Record<string, unknown> | null;
   current_agreement?: {
     signed_contract_storage_path?: string | null;
     signed_contract_filename?: string | null;
@@ -32,7 +33,7 @@ export default function Page() {
   useEffect(() => {
     supabase
       .from('profiles')
-      .select('id,full_name,phone_number,payout_phone,national_id_number,affiliate_verification_status,duplicate_flag_reason,affiliate_verification_notes,avatar_url,contract_status,current_agreement:current_agreement_id(signed_contract_storage_path,signed_contract_filename,digital_signature)')
+      .select('id,full_name,phone_number,payout_phone,national_id_number,affiliate_verification_status,duplicate_flag_reason,affiliate_verification_notes,avatar_url,contract_status,documents,current_agreement:current_agreement_id(signed_contract_storage_path,signed_contract_filename,digital_signature)')
       .eq('id', params.affiliateId)
       .single()
       .then(({ data, error }) => {
@@ -45,6 +46,7 @@ export default function Page() {
   }, [params.affiliateId]);
 
   if (!affiliate) return <div className="text-muted">Loading...</div>;
+  const verificationDocs = (affiliate.documents?.affiliate_verification as Record<string, unknown> | undefined) || {};
 
   return (
     <div className="space-y-6">
@@ -63,7 +65,7 @@ export default function Page() {
               <p>Name: {affiliate.full_name || '—'}</p>
               <p>Phone: {affiliate.phone_number || '—'}</p>
               <p>Payout Phone: {affiliate.payout_phone || '—'}</p>
-              <p>National ID: {affiliate.national_id_number || '—'}</p>
+              <p>Masked National ID: {affiliate.national_id_number || '—'}</p>
               <p>Verification Status: {affiliate.affiliate_verification_status || 'under_review'}</p>
               <p>Contract Status: {affiliate.contract_status || 'under_review'}</p>
             </div>
@@ -90,6 +92,16 @@ export default function Page() {
               {affiliate.avatar_url ? (
                 <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openDocumentViewer({ url: affiliate.avatar_url || '', name: 'affiliate-avatar' })}>
                   Open Avatar
+                </button>
+              ) : null}
+              {typeof verificationDocs.id_front_path === 'string' ? (
+                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openDocumentViewer({ bucket: 'merchant-docs', path: verificationDocs.id_front_path as string, name: 'national-id-front' })}>
+                  Open ID Front
+                </button>
+              ) : null}
+              {typeof verificationDocs.id_back_path === 'string' ? (
+                <button className="rounded-full border border-white/20 px-4 py-2 text-xs" onClick={() => openDocumentViewer({ bucket: 'merchant-docs', path: verificationDocs.id_back_path as string, name: 'national-id-back' })}>
+                  Open ID Back
                 </button>
               ) : null}
               {affiliate.current_agreement?.signed_contract_storage_path ? (

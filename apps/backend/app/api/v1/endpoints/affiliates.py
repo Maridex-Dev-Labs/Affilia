@@ -1,4 +1,6 @@
 import secrets
+import hashlib
+import hmac
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -23,10 +25,24 @@ class LinkPayload(BaseModel):
 
 class AffiliateVerificationPayload(BaseModel):
     national_id_number: str
+    id_front_path: str
+    id_back_path: str
 
 
 def _normalize_identifier(value: str) -> str:
     return ''.join(ch for ch in (value or '').upper().strip() if ch.isalnum())
+
+
+def _mask_identifier(value: str) -> str:
+    normalized = _normalize_identifier(value)
+    if len(normalized) <= 4:
+        return normalized
+    return f"{'*' * (len(normalized) - 4)}{normalized[-4:]}"
+
+
+def _hash_identifier(value: str) -> str:
+    normalized = _normalize_identifier(value)
+    return hmac.new(settings.SECRET_KEY.encode(), normalized.encode(), hashlib.sha256).hexdigest()
 
 
 def _to_number(value) -> float:
@@ -129,14 +145,35 @@ def submit_verification(payload: AffiliateVerificationPayload, user=Depends(get_
     national_id = _normalize_identifier(payload.national_id_number)
     if len(national_id) < 6:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Enter a valid national ID number.')
+    if not payload.id_front_path.strip() or not payload.id_back_path.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Upload both sides of your national ID before submitting.')
     if not profile.get('phone_number'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Add your primary phone number before submitting verification.')
     if not profile.get('payout_phone'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Add your payout phone number before submitting verification.')
 
+    identity_hash = _hash_identifier(national_id)
+    documents = profile.get('documents') or {}
+    affiliate_documents = dict(documents.get('affiliate_verification') or {})
+
     duplicate_reasons: list[str] = []
+    other_affiliates = select(
+        'profiles',
+        params={
+            'role': 'eq.affiliate',
+            'id': f'neq.{profile["id"]}',
+            'select': 'id,phone_number,payout_phone,documents',
+        },
+    )
+
+    for other in other_affiliates:
+        other_documents = other.get('documents') or {}
+        other_identity = other_documents.get('affiliate_verification') or {}
+        if other_identity.get('national_id_hash') == identity_hash:
+            duplicate_reasons.append('Another affiliate already uses this national ID number.')
+            break
+
     checks = [
-        ('national_id_number', national_id, 'Another affiliate already uses this national ID number.'),
         ('phone_number', profile.get('phone_number'), 'Another affiliate already uses this phone number.'),
         ('payout_phone', profile.get('payout_phone'), 'Another affiliate already uses this payout phone number.'),
     ]
@@ -157,13 +194,23 @@ def submit_verification(payload: AffiliateVerificationPayload, user=Depends(get_
             duplicate_reasons.append(reason)
 
     if duplicate_reasons:
+        affiliate_documents.update({
+            'national_id_hash': identity_hash,
+            'national_id_last4': national_id[-4:],
+            'id_front_path': payload.id_front_path.strip(),
+            'id_back_path': payload.id_back_path.strip(),
+            'submitted_at': utcnow_iso(),
+            'status': 'restricted_duplicate',
+        })
+        documents['affiliate_verification'] = affiliate_documents
         update(
             'profiles',
             {
-                'national_id_number': national_id,
+                'national_id_number': _mask_identifier(national_id),
                 'affiliate_verification_status': 'restricted_duplicate',
                 'duplicate_flag_reason': ' '.join(duplicate_reasons),
                 'affiliate_verification_notes': 'Duplicate-risk checks failed during submission.',
+                'documents': documents,
             },
             {'id': f'eq.{profile["id"]}'},
         )
@@ -172,17 +219,28 @@ def submit_verification(payload: AffiliateVerificationPayload, user=Depends(get_
             detail='This affiliate account has been flagged for duplicate-risk review. Contact support or wait for admin review.',
         )
 
+    affiliate_documents.update({
+        'national_id_hash': identity_hash,
+        'national_id_last4': national_id[-4:],
+        'id_front_path': payload.id_front_path.strip(),
+        'id_back_path': payload.id_back_path.strip(),
+        'submitted_at': utcnow_iso(),
+        'status': 'submitted',
+    })
+    documents['affiliate_verification'] = affiliate_documents
+
     updated_rows = update(
         'profiles',
         {
-            'national_id_number': national_id,
-            'affiliate_verification_status': 'under_review',
+            'national_id_number': _mask_identifier(national_id),
+            'affiliate_verification_status': 'submitted',
             'duplicate_flag_reason': None,
             'affiliate_verification_notes': 'Verification submitted and awaiting admin review.',
+            'documents': documents,
         },
         {'id': f'eq.{profile["id"]}'},
     )
-    return {'status': 'under_review', 'profile': updated_rows[0] if updated_rows else None}
+    return {'status': 'submitted', 'profile': updated_rows[0] if updated_rows else None}
 
 
 @router.post('/generate-link')

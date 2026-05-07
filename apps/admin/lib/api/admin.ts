@@ -5,6 +5,8 @@ import { adminApiClient } from './client';
 export const adminApi = {
   verificationQueue: async () => (await adminApiClient.get('/api/admin/verification-queue')).data,
   verifyMerchant: async (merchantId: string) => (await adminApiClient.post(`/api/admin/verify-merchant/${merchantId}`)).data,
+  rejectMerchant: async (merchantId: string, payload: { reason: string }) =>
+    (await adminApiClient.post(`/api/admin/verify-merchant/${merchantId}/reject`, payload)).data,
   verifyAffiliate: async (affiliateId: string, payload: { notes?: string }) =>
     (await adminApiClient.post(`/api/admin/verify-affiliate/${affiliateId}`, payload)).data,
   rejectAffiliate: async (affiliateId: string, payload: { reason: string }) =>

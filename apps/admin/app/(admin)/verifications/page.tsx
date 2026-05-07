@@ -25,6 +25,8 @@ type MerchantVerificationItem = {
   documents?: Record<string, unknown> | null;
   avatar_url?: string | null;
   contract_status?: string | null;
+  merchant_verification_status?: string | null;
+  merchant_verification_notes?: string | null;
   current_agreement?: AgreementSummary | null;
 };
 
@@ -39,6 +41,7 @@ type AffiliateVerificationItem = {
   affiliate_verification_notes?: string | null;
   avatar_url?: string | null;
   contract_status?: string | null;
+  documents?: Record<string, unknown> | null;
   current_agreement?: AgreementSummary | null;
 };
 
@@ -73,6 +76,19 @@ export default function Page() {
       await load();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to approve merchant.';
+      setError(message);
+    }
+  };
+
+  const rejectMerchant = async (id: string) => {
+    const reason = window.prompt('Reason for sending this merchant verification back for revision?');
+    if (!reason?.trim()) return;
+    setError(null);
+    try {
+      await adminApi.rejectMerchant(id, { reason });
+      await load();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to request merchant verification revision.';
       setError(message);
     }
   };
@@ -156,7 +172,7 @@ export default function Page() {
                       <Link className="underline" href={`/verifications/${m.id}`}>
                         {m.business_name || m.full_name}
                       </Link>
-                      <div className="mt-1 text-xs text-muted">Status: {m.contract_status || 'under_review'}</div>
+                      <div className="mt-1 text-xs text-muted">Verification: {m.merchant_verification_status || 'under_review'}</div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {m.avatar_url ? (
                           <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ url: m.avatar_url || '', name: `${(m.business_name || m.full_name || 'merchant').replace(/\s+/g, '-').toLowerCase()}-avatar` })}>
@@ -177,9 +193,14 @@ export default function Page() {
                     </td>
                     <td className="py-3">{renderAgreementActions(m.current_agreement)}</td>
                     <td className="py-3">
-                      <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => approveMerchant(m.id)}>
-                        Approve
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => approveMerchant(m.id)}>
+                          Approve
+                        </button>
+                        <button className="text-xs border border-[#BB0000]/30 text-[#f5c2c2] rounded-full px-3 py-1" onClick={() => rejectMerchant(m.id)}>
+                          Request Revision
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -225,6 +246,16 @@ export default function Page() {
                   <td className="py-3">{affiliate.national_id_number || '—'}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap gap-2">
+                      {typeof (affiliate.documents as any)?.affiliate_verification?.id_front_path === 'string' ? (
+                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ bucket: 'merchant-docs', path: (affiliate.documents as any).affiliate_verification.id_front_path, name: 'national-id-front' })}>
+                          View ID Front
+                        </button>
+                      ) : null}
+                      {typeof (affiliate.documents as any)?.affiliate_verification?.id_back_path === 'string' ? (
+                        <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ bucket: 'merchant-docs', path: (affiliate.documents as any).affiliate_verification.id_back_path, name: 'national-id-back' })}>
+                          View ID Back
+                        </button>
+                      ) : null}
                       {affiliate.avatar_url ? (
                         <button className="text-xs border border-white/20 rounded-full px-3 py-1" onClick={() => openDocumentViewer({ url: affiliate.avatar_url || '', name: `${(affiliate.full_name || 'affiliate').replace(/\s+/g, '-').toLowerCase()}-avatar` })}>
                           View Avatar

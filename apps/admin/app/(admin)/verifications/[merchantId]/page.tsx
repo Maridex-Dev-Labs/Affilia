@@ -17,6 +17,8 @@ type MerchantDetail = {
   avatar_url?: string | null;
   store_description?: string | null;
   contract_status?: string | null;
+  merchant_verification_status?: string | null;
+  merchant_verification_notes?: string | null;
   current_agreement?: {
     signed_contract_storage_path?: string | null;
     signed_contract_filename?: string | null;
@@ -49,6 +51,7 @@ export default function Page() {
   if (!merchant) return <div className="text-muted">Loading...</div>;
 
   const registrationPath = typeof merchant.documents?.registration === 'string' ? (merchant.documents.registration as string) : null;
+  const merchantVerification = (merchant.documents?.merchant_verification as Record<string, unknown> | undefined) || {};
 
   return (
     <div className="space-y-6">
@@ -69,6 +72,7 @@ export default function Page() {
               <p>Phone: {merchant.phone_number || '—'}</p>
               <p>M-Pesa Till: {merchant.mpesa_till || '—'}</p>
               <p>Verified: {merchant.business_verified ? 'Yes' : 'No'}</p>
+              <p>Verification Status: {typeof merchantVerification.status === 'string' ? merchantVerification.status : (merchant.business_verified ? 'verified' : 'not_started')}</p>
               <p>Contract Status: {merchant.contract_status || 'under_review'}</p>
             </div>
           </div>
@@ -102,6 +106,9 @@ export default function Page() {
                 </button>
               ) : null}
             </div>
+            {typeof merchantVerification.notes === 'string' ? (
+              <p className="mt-4 text-sm text-[#d8deea]">Review Notes: {merchantVerification.notes}</p>
+            ) : null}
           </div>
         </div>
       </div>

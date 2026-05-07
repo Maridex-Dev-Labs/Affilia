@@ -7,6 +7,8 @@ type GenerateLinkPayload = {
 
 type AffiliateVerificationPayload = {
   national_id_number: string;
+  id_front_path: string;
+  id_back_path: string;
 };
 
 export const affiliateApi = {
