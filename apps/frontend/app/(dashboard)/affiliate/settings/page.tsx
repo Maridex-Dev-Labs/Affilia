@@ -21,6 +21,15 @@ type VerificationDocs = {
   notes?: string;
 };
 
+function maskStoredId(value?: string | null) {
+  const raw = (value || '').trim();
+  if (!raw) return '';
+  if (raw.includes('*')) return raw;
+  const normalized = raw.replace(/\s+/g, '');
+  if (normalized.length <= 4) return normalized;
+  return `${'*'.repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
+}
+
 function formatProfileError(error: unknown, fallback: string) {
   const anyError = error as { code?: string; message?: string; details?: string };
   if (anyError?.code === '23505') {
@@ -160,7 +169,9 @@ export default function Page() {
     }
   };
 
-  const maskedId = profile?.national_id_number || (verificationDocs.national_id_last4 ? `******${verificationDocs.national_id_last4}` : '');
+  const maskedId = verificationDocs.national_id_last4
+    ? `******${verificationDocs.national_id_last4}`
+    : maskStoredId(profile?.national_id_number);
 
   return (
     <div className="space-y-6">

@@ -57,7 +57,9 @@ const SAFE_MESSAGES = [
   /^you have reached today’s free link limit/i,
   /^save your business name/i,
   /^save your primary phone number/i,
+  /^add your primary phone number/i,
   /^save your payout phone/i,
+  /^add your payout phone/i,
   /^enter your national id number/i,
   /^upload both sides of your national id/i,
   /^upload the front side of your national id/i,
@@ -65,6 +67,9 @@ const SAFE_MESSAGES = [
   /^upload your business document/i,
   /^that phone number is already in use/i,
   /^that payout phone is already in use/i,
+  /^another affiliate already uses this national id number/i,
+  /^another affiliate already uses this phone number/i,
+  /^another affiliate already uses this payout phone number/i,
   /^this affiliate account has been flagged/i,
 ];
 
