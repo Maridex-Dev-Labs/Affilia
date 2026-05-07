@@ -5,6 +5,7 @@ import { pdf } from '@react-pdf/renderer';
 import { supabase } from '@/lib/supabase/client';
 import { contractMeta, type AgreementType } from '@/lib/legal/contracts';
 import { ContractPdfDocument } from '@/lib/legal/contract-pdf';
+import { buildSimpleContractPdfBlob } from '@/lib/legal/simple-contract-pdf';
 import type { SubmitAgreementPayload } from '@/lib/api/contracts';
 
 function buildContractSnapshot(agreementType: AgreementType, profile: Record<string, any>) {
@@ -26,7 +27,11 @@ function buildContractSnapshot(agreementType: AgreementType, profile: Record<str
 }
 
 export async function generateAgreementPdfFallback(agreementType: AgreementType) {
-  return pdf(React.createElement(ContractPdfDocument, { agreementType })).toBlob();
+  try {
+    return await pdf(React.createElement(ContractPdfDocument, { agreementType })).toBlob();
+  } catch {
+    return buildSimpleContractPdfBlob(agreementType);
+  }
 }
 
 export async function loadCurrentAgreementClientFallback(agreementType?: AgreementType) {

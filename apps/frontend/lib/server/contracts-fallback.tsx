@@ -6,6 +6,7 @@ import { pdf } from '@react-pdf/renderer';
 
 import { contractMeta, type AgreementType } from '@/lib/legal/contracts';
 import { ContractPdfDocument } from '@/lib/legal/contract-pdf';
+import { buildSimpleContractPdfBuffer } from '@/lib/legal/simple-contract-pdf';
 import { createServiceRoleClient } from './supabase-service';
 
 function buildContractSnapshot(agreementType: AgreementType, profile: Record<string, any>) {
@@ -166,5 +167,9 @@ export async function submitAgreement(userId: string, payload: Record<string, an
 }
 
 export async function generateAgreementPdf(agreementType: AgreementType) {
-  return pdf(<ContractPdfDocument agreementType={agreementType} />).toBuffer();
+  try {
+    return await pdf(<ContractPdfDocument agreementType={agreementType} />).toBuffer();
+  } catch {
+    return buildSimpleContractPdfBuffer(agreementType);
+  }
 }
