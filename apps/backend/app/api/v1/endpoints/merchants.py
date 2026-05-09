@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from app.api.deps import get_current_user, require_role
 from app.db.supabase import insert, select
-from app.services.access_service import ensure_active_plan
+from app.services.access_service import ensure_active_plan, get_active_plan
 from app.services.conversion_service import get_link_by_code, release_reserved_commission, reserve_merchant_commission
 
 router = APIRouter()
@@ -219,9 +219,9 @@ def record_affiliate_sale(product_id: str, payload: ManualSalePayload, user=Depe
     if affiliate.get('affiliate_verification_status') != 'verified':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='The affiliate tied to this code is not verified yet.')
 
-    affiliate_plan_code = affiliate.get('active_plan_code') or 'affiliate_starter'
-    affiliate_plan_status = affiliate.get('plan_status') or 'active'
-    if affiliate_plan_status != 'active' or not affiliate_plan_code:
+    affiliate_plan = get_active_plan(affiliate['id'], role='affiliate')
+    affiliate_plan_code = affiliate_plan.get('plan_code') if affiliate_plan else None
+    if not affiliate_plan_code:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='The affiliate tied to this code does not have an active package.')
 
     duplicate = select(

@@ -16,6 +16,8 @@ type BillingItem = {
   mpesa_reference?: string | null;
   status: string;
   paid_at?: string | null;
+  activated_at?: string | null;
+  expires_at?: string | null;
   profiles?: {
     full_name?: string | null;
     business_name?: string | null;
@@ -110,6 +112,7 @@ export default function Page() {
               <th className="py-2">Role</th>
               <th className="py-2">Package</th>
               <th className="py-2">Amount</th>
+              <th className="py-2">Expiry</th>
               <th className="py-2">Refs</th>
               <th className="py-2">Action</th>
             </tr>
@@ -127,6 +130,10 @@ export default function Page() {
                   <div className="text-xs text-muted">{item.plan_code}</div>
                 </td>
                 <td className="py-3">KES {item.amount_kes}</td>
+                <td className="py-3 text-xs text-muted">
+                  {item.activated_at ? `Active from ${new Date(item.activated_at).toLocaleDateString('en-KE')}` : 'Not activated yet'}
+                  <div>{item.expires_at ? `Expires ${new Date(item.expires_at).toLocaleDateString('en-KE')}` : 'No expiry set'}</div>
+                </td>
                 <td className="py-3">
                   <div>{item.payment_reference}</div>
                   <div className="text-xs text-muted">{item.mpesa_reference || 'No M-Pesa code'}</div>
@@ -160,7 +167,7 @@ export default function Page() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-6 text-muted">
+                <td colSpan={7} className="py-6 text-muted">
                   No billing records currently need action.
                 </td>
               </tr>

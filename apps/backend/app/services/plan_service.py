@@ -4,6 +4,76 @@ from app.db.supabase import insert, select, update
 from app.utils.helpers import utcnow_iso
 
 
+def _fallback_plan_code(role: str | None) -> str | None:
+    if role == 'affiliate':
+        return 'affiliate_starter'
+    if role == 'merchant':
+        return 'merchant_free'
+    return None
+
+
+def expire_profile_plan_if_needed(profile_id: str, role: str | None = None) -> dict | None:
+    rows = select(
+        'profile_plan_selections',
+        params={
+            'profile_id': f'eq.{profile_id}',
+            'status': 'eq.active',
+            'select': '*',
+            'order': 'activated_at.desc',
+            'limit': 1,
+        },
+    )
+    if not rows:
+        return None
+
+    plan = rows[0]
+    expires_at = plan.get('expires_at')
+    if not expires_at:
+        return plan
+
+    try:
+        expiry = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
+    except ValueError:
+        return plan
+
+    if expiry > datetime.now(timezone.utc):
+        return plan
+
+    now = utcnow_iso()
+    update(
+        'profile_plan_selections',
+        {'status': 'expired', 'expires_at': now},
+        {'profile_id': f'eq.{profile_id}', 'plan_code': f'eq.{plan.get("plan_code")}', 'status': 'eq.active'},
+    )
+
+    effective_role = plan.get('role') or role
+    fallback_plan_code = _fallback_plan_code(effective_role)
+    update(
+        'profiles',
+        {
+            'active_plan_code': fallback_plan_code,
+            'active_plan_role': effective_role if fallback_plan_code else None,
+            'plan_status': 'expired',
+        },
+        {'id': f'eq.{profile_id}'},
+    )
+
+    if effective_role == 'affiliate':
+        membership = select('academy_memberships', params={'user_id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+        payload = {
+            'user_id': profile_id,
+            'access_level': 'free',
+            'source': 'billing_plan',
+            'notes': 'Subscription expired',
+        }
+        if membership:
+            update('academy_memberships', payload, {'user_id': f'eq.{profile_id}'})
+        else:
+            insert('academy_memberships', payload)
+
+    return {**plan, 'status': 'expired', 'expires_at': now}
+
+
 def activate_profile_plan(profile_id: str, approver_id: str, notes: str | None = None) -> dict:
     rows = select(
         'profile_plan_selections',
@@ -22,6 +92,13 @@ def activate_profile_plan(profile_id: str, approver_id: str, notes: str | None =
     if not expires_at:
         # Month-to-month packages expire 30 days after activation.
         expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
+            if parsed <= datetime.now(timezone.utc):
+                expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        except ValueError:
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
 
     updated_rows = update(
         'profile_plan_selections',
@@ -101,7 +178,7 @@ def revoke_profile_plan(profile_id: str, approver_id: str, notes: str | None = N
     cancelled_plan = updated_rows[0] if updated_rows else active_plan
 
     role = active_plan.get('role')
-    fallback_plan_code = 'affiliate_starter' if role == 'affiliate' else 'merchant_free' if role == 'merchant' else None
+    fallback_plan_code = _fallback_plan_code(role)
     profile_payload = {
         'active_plan_code': fallback_plan_code,
         'active_plan_role': role if fallback_plan_code else None,
@@ -146,6 +223,13 @@ def reactivate_profile_plan(profile_id: str, approver_id: str, notes: str | None
     expires_at = plan.get('expires_at')
     if not expires_at:
         expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
+            if parsed <= datetime.now(timezone.utc):
+                expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        except ValueError:
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
 
     updated_rows = update(
         'profile_plan_selections',

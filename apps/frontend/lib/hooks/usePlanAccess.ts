@@ -12,7 +12,15 @@ type PlanSelectionRecord = {
   plan_code: string;
   status: 'pending_payment' | 'pending_verification' | 'active' | 'expired' | 'cancelled';
   plan_name: string;
+  expires_at?: string | null;
+  activated_at?: string | null;
 };
+
+function isExpired(expiresAt?: string | null) {
+  if (!expiresAt) return false;
+  const timestamp = Date.parse(expiresAt);
+  return Number.isFinite(timestamp) && timestamp <= Date.now();
+}
 
 function makeChannelName(prefix: string, id: string) {
   const suffix =
@@ -66,8 +74,13 @@ export function usePlanAccess() {
   }, [profile?.id]);
 
   const fallbackPlanCode = profile?.role === 'affiliate' ? 'affiliate_starter' : profile?.role === 'merchant' ? 'merchant_free' : null;
-  const activePlanCode = profile?.active_plan_code || (selection?.status === 'active' ? selection.plan_code : fallbackPlanCode);
-  const activePlanStatus = profile?.plan_status || selection?.status || (fallbackPlanCode ? 'active' : 'inactive');
+  const selectionStatus = selection?.status === 'active' && isExpired(selection?.expires_at) ? 'expired' : selection?.status;
+  const activePlanCode = selectionStatus === 'active'
+    ? profile?.active_plan_code || selection?.plan_code || fallbackPlanCode
+    : fallbackPlanCode;
+  const activePlanStatus = profile?.plan_status === 'active' && isExpired(selection?.expires_at)
+    ? 'expired'
+    : profile?.plan_status || selectionStatus || (fallbackPlanCode ? 'active' : 'inactive');
   const affiliateVerificationStatus = profile?.affiliate_verification_status || 'not_started';
 
   const model = useMemo(() => {
@@ -76,6 +89,7 @@ export function usePlanAccess() {
       selection,
       activePlanCode,
       activePlanStatus,
+      planExpiresAt: selection?.expires_at || null,
       affiliateVerificationStatus,
       role,
       canAccessPath(pathname: string) {

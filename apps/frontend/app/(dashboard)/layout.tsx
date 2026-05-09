@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { usePlanAccess } from '@/lib/hooks/usePlanAccess';
+import { formatAccountDate, getAccountControl } from '@/lib/account/status';
 import { affiliateNav, merchantNav } from '@/lib/config/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
@@ -22,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { profile, loading: profileLoading } = useProfile();
   const { canAccessPath, loading: planAccessLoading, isAffiliateVerified, activePlanCode } = usePlanAccess();
   const [resolverTimedOut, setResolverTimedOut] = useState(false);
+  const accountControl = getAccountControl(profile?.documents);
 
   useEffect(() => {
     if (!loading && !profileLoading && !planAccessLoading) {
@@ -92,6 +94,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (accountControl.status === 'blocked') {
+    return (
+      <div className="min-h-screen bg-kenya-navy text-white flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-2xl card-surface p-8">
+          <div className="text-xs font-bold uppercase tracking-[0.24em] text-white/45">Account blocked</div>
+          <h1 className="mt-3 text-3xl font-black italic text-white">This account is currently blocked.</h1>
+          <p className="mt-4 text-sm leading-6 text-[#9aa2b5]">
+            {accountControl.block_reason || 'Please contact support if you need this reviewed.'}
+          </p>
+          <div className="mt-6">
+            <Link href="/" className="rounded-full border border-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5">
+              Go to Homepage
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const showWorkspaceGate =
     Boolean(profile?.role && (profile.role === 'merchant' || profile.role === 'affiliate')) &&
     !canAccessPath(safePathname);
@@ -118,6 +139,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-8">
             <div className="mx-auto max-w-6xl">
+              {accountControl.status === 'warned' && accountControl.warning_message ? (
+                <div className="mb-6 rounded-2xl border border-[#f59e0b]/20 bg-[#f59e0b]/10 p-4 text-sm text-[#f8d6a4]">
+                  System warning: {accountControl.warning_message}
+                </div>
+              ) : null}
+              {accountControl.status === 'scheduled_for_deletion' ? (
+                <div className="mb-6 rounded-2xl border border-[#BB0000]/20 bg-[#BB0000]/10 p-4 text-sm text-[#f5c2c2]">
+                  Account deletion is scheduled for {formatAccountDate(accountControl.scheduled_for) || 'the end of the grace period'} unless you cancel it from Settings.
+                </div>
+              ) : null}
               {showWorkspaceGate ? (
                 <div className="surface-panel p-8">
                   <div className="text-xs font-bold uppercase tracking-[0.24em] text-white/45">Access Locked</div>

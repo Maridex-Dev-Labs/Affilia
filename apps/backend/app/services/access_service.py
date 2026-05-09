@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 
 from app.db.supabase import select
+from app.services.plan_service import expire_profile_plan_if_needed
 
 FREE_AFFILIATE_DAILY_LINK_LIMIT = 5
 
@@ -16,6 +17,10 @@ def default_free_plan(role: str) -> dict | None:
 
 
 def get_active_plan(profile_id: str, role: str | None = None) -> dict | None:
+    active_plan = expire_profile_plan_if_needed(profile_id, role=role)
+    if active_plan and active_plan.get('status') == 'active':
+        return active_plan
+
     params = {
         'profile_id': f'eq.{profile_id}',
         'status': 'eq.active',

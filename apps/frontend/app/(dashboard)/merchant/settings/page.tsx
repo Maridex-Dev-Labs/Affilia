@@ -7,9 +7,11 @@ import Button from '@/components/ui/Button';
 import { uploadMerchantDoc, uploadProfileAvatar } from '@/lib/supabase/storage';
 import LegalAgreementForm from '@/components/legal/LegalAgreementForm';
 import AccountDeletionCard from '@/components/settings/AccountDeletionCard';
+import DownloadDataCard from '@/components/settings/DownloadDataCard';
 import PlanSelectionCard from '@/components/settings/PlanSelectionCard';
 import { sanitizeUserFacingError } from '@/lib/errors';
 import { usersApi } from '@/lib/api/users';
+import { formatAccountDate, getAccountControl } from '@/lib/account/status';
 
 type MerchantVerificationDocs = {
   business_document_path?: string;
@@ -46,6 +48,7 @@ export default function Page() {
     const documents = (profile?.documents || {}) as Record<string, any>;
     return (documents.merchant_verification || {}) as MerchantVerificationDocs;
   }, [profile]);
+  const accountControl = useMemo(() => getAccountControl(profile?.documents), [profile?.documents]);
 
   const merchantVerificationStatus = useMemo(() => {
     if (profile?.business_verified) return 'verified';
@@ -154,6 +157,16 @@ export default function Page() {
         <h1 className="text-3xl font-black italic">Merchant Settings</h1>
         <p className="text-muted mt-2">Manage your business identity, payout details, storefront profile, verification package, and legal agreement status.</p>
       </div>
+      {accountControl.status === 'warned' && accountControl.warning_message ? (
+        <div className="rounded-2xl border border-[#f59e0b]/20 bg-[#f59e0b]/10 p-4 text-sm text-[#f8d6a4]">
+          Account warning: {accountControl.warning_message}
+        </div>
+      ) : null}
+      {accountControl.status === 'scheduled_for_deletion' ? (
+        <div className="rounded-2xl border border-[#BB0000]/20 bg-[#BB0000]/10 p-4 text-sm text-[#f5c2c2]">
+          Account deletion is scheduled for {formatAccountDate(accountControl.scheduled_for) || 'the end of the grace period'} unless you cancel it.
+        </div>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="card-surface p-6">
           <div className="flex flex-col items-center text-center">
@@ -230,6 +243,7 @@ export default function Page() {
       </div>
       {profile ? <PlanSelectionCard role="merchant" profileId={profile.id} defaultPhone={payoutPhone || phone} /> : null}
       <LegalAgreementForm agreementType="merchant" mode="settings" submitLabel="Submit Updated Agreement" />
+      <DownloadDataCard />
       <AccountDeletionCard />
     </div>
   );

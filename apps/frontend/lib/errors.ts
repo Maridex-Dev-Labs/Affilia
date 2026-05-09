@@ -35,6 +35,11 @@ const SAFE_MESSAGES = [
   /^please sign in/i,
   /^enter a valid amount/i,
   /^type delete to confirm/i,
+  /^merchant escrow still holds/i,
+  /^there is at least one pending deposit request/i,
+  /^there are unsettled merchant conversions/i,
+  /^there is a pending payout scheduled/i,
+  /^there are unsettled commissions/i,
   /^reserve the package first/i,
   /^enter the m-pesa/i,
   /^fill in all required fields/i,
@@ -71,6 +76,8 @@ const SAFE_MESSAGES = [
   /^another affiliate already uses this phone number/i,
   /^another affiliate already uses this payout phone number/i,
   /^this affiliate account has been flagged/i,
+  /^account deletion scheduled/i,
+  /^failed to prepare your data export/i,
 ];
 
 export function isTechnicalErrorMessage(message: string) {

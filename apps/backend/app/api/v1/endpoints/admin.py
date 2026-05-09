@@ -3,6 +3,15 @@ from pydantic import BaseModel
 
 from app.api.deps import get_current_user, require_admin_permission, require_any_admin_permission
 from app.db.supabase import select, update, insert
+from app.services.account_service import (
+    block_account,
+    cancel_account_deletion,
+    delete_account_now,
+    restore_account,
+    revoke_user_access,
+    schedule_account_deletion,
+    warn_account,
+)
 from app.services.conversion_service import approve_conversion, reject_conversion
 from app.services.payout_service import confirm_pending_payouts
 from app.services.receipt_service import create_official_receipt
@@ -15,6 +24,10 @@ class ReviewPayload(BaseModel):
 
 class RejectionPayload(BaseModel):
     reason: str
+
+
+class WarningPayload(BaseModel):
+    message: str
 
 router = APIRouter()
 
@@ -211,6 +224,70 @@ def reactivate_billing(profile_id: str, payload: ReviewPayload, user=Depends(get
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Reactivatable billing record not found')
     return {'status': 'reactivated', 'plan': plan}
+
+
+@router.post('/users/{profile_id}/warn')
+def warn_user(profile_id: str, payload: WarningPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return {'status': 'warned', 'account': warn_account(profiles[0], actor_id=user['id'], message=payload.message)}
+
+
+@router.post('/users/{profile_id}/block')
+def block_user(profile_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return {'status': 'blocked', 'account': block_account(profiles[0], actor_id=user['id'], reason=payload.reason)}
+
+
+@router.post('/users/{profile_id}/restore')
+def restore_user(profile_id: str, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return {'status': 'active', 'account': restore_account(profiles[0], actor_id=user['id'])}
+
+
+@router.post('/users/{profile_id}/revoke')
+def revoke_user(profile_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    updated = revoke_user_access(profiles[0], actor_id=user['id'], reason=payload.reason)
+    return {'status': 'revoked', 'profile': updated}
+
+
+@router.post('/users/{profile_id}/schedule-deletion')
+def schedule_delete_user(profile_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return {'status': 'scheduled_for_deletion', 'account': schedule_account_deletion(profiles[0], actor_id=user['id'], actor_type='admin', reason=payload.reason)}
+
+
+@router.post('/users/{profile_id}/cancel-deletion')
+def cancel_delete_user(profile_id: str, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return {'status': 'active', 'account': cancel_account_deletion(profiles[0], actor_id=user['id'], actor_type='admin')}
+
+
+@router.post('/users/{profile_id}/delete')
+def delete_user(profile_id: str, payload: RejectionPayload, user=Depends(get_current_user)):
+    require_admin_permission(user, 'user.manage')
+    profiles = select('profiles', params={'id': f'eq.{profile_id}', 'select': '*', 'limit': 1})
+    if not profiles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return delete_account_now(profiles[0], actor_id=user['id'], actor_type='admin', reason=payload.reason)
 
 @router.post('/deposits/{deposit_id}/approve')
 def approve_deposit(deposit_id: str, user=Depends(get_current_user)):

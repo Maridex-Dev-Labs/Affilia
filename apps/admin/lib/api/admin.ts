@@ -22,6 +22,20 @@ export const adminApi = {
     (await adminApiClient.post(`/api/admin/billing/${profileId}/revoke`, payload)).data,
   reactivateBilling: async (profileId: string, payload: { notes?: string }) =>
     (await adminApiClient.post(`/api/admin/billing/${profileId}/reactivate`, payload)).data,
+  warnUser: async (profileId: string, payload: { message: string }) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/warn`, payload)).data,
+  blockUser: async (profileId: string, payload: { reason: string }) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/block`, payload)).data,
+  restoreUser: async (profileId: string) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/restore`)).data,
+  revokeUser: async (profileId: string, payload: { reason: string }) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/revoke`, payload)).data,
+  scheduleUserDeletion: async (profileId: string, payload: { reason: string }) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/schedule-deletion`, payload)).data,
+  cancelUserDeletion: async (profileId: string) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/cancel-deletion`)).data,
+  deleteUser: async (profileId: string, payload: { reason: string }) =>
+    (await adminApiClient.post(`/api/admin/users/${profileId}/delete`, payload)).data,
   sweepPreview: async () => (await adminApiClient.get('/api/admin/sweep/preview')).data,
   confirmSweep: async () => (await adminApiClient.post('/api/admin/sweep/confirm')).data,
   pendingSalesReview: async () => (await adminApiClient.get('/api/admin/sales-review/pending')).data,

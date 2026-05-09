@@ -19,6 +19,7 @@ type PlanSelectionRecord = {
   payment_reference: string;
   payer_phone: string | null;
   mpesa_reference: string | null;
+  activated_at?: string | null;
   status: 'pending_payment' | 'pending_verification' | 'active' | 'expired' | 'cancelled';
   expires_at: string | null;
 };
@@ -47,6 +48,13 @@ function getStatusTone(status: PlanSelectionRecord['status']) {
     default:
       return 'bg-white/6 text-white/65 border-white/10';
   }
+}
+
+function formatExpiryLabel(value?: string | null) {
+  if (!value) return 'No expiry date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No expiry date';
+  return date.toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export default function PlanSelectionCard({ role, profileId, defaultPhone }: Props) {
@@ -212,12 +220,19 @@ export default function PlanSelectionCard({ role, profileId, defaultPhone }: Pro
               <div className="mt-1 text-sm text-[#9aa2b5]">
                 {formatKes(Number(record.amount_kes || 0))} / month · Ref {record.payment_reference}
               </div>
+              <div className="mt-2 text-xs text-[#8f98ab]">
+                {record.activated_at ? `Activated: ${formatExpiryLabel(record.activated_at)}` : 'Activation starts after payment confirmation.'}
+                {' · '}
+                {record.expires_at ? `Expires: ${formatExpiryLabel(record.expires_at)}` : 'No expiry set yet'}
+              </div>
             </div>
             <div className="text-sm text-[#9aa2b5]">
               {record.status === 'active'
-                ? 'This package is already active on your account.'
+                ? `This package is active until ${formatExpiryLabel(record.expires_at)}.`
                 : record.status === 'pending_verification'
                   ? 'Your payment is waiting for verification.'
+                  : record.status === 'expired'
+                    ? 'This package has expired and your workspace has fallen back to the free tier.'
                   : 'Your package is reserved and awaiting payment confirmation.'}
             </div>
           </div>
