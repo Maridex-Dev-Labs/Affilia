@@ -1,14 +1,14 @@
-const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
-const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm'];
-const IMAGE_LIMIT_BYTES = 5 * 1024 * 1024;
-const VIDEO_LIMIT_BYTES = 20 * 1024 * 1024;
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg', 'avif', 'tif', 'tiff', 'heic', 'heif'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv', '3gp', 'mpeg', 'mpg', 'm2ts', 'mts'];
+const IMAGE_LIMIT_BYTES = 15 * 1024 * 1024;
+const VIDEO_LIMIT_BYTES = 50 * 1024 * 1024;
 const MAX_DIMENSION = 1800;
 const JPEG_QUALITY_STEPS = [0.9, 0.82, 0.74, 0.66, 0.58, 0.5, 0.42];
 
 export const PRODUCT_MEDIA_GUIDELINES = [
   'Upload at least 1 clear product asset and at most 6 files.',
-  'Accepted images: JPG, PNG, WEBP up to 5MB each. iPhone HEIC photos are converted automatically when possible.',
-  'Accepted videos: MP4, MOV, WEBM up to 20MB each.',
+  'Accepted images include JPG, PNG, WEBP, GIF, AVIF, BMP, TIFF, SVG, and iPhone HEIC/HEIF up to 15MB each after optimisation.',
+  'Accepted videos include MP4, MOV, WEBM, M4V, AVI, MKV, 3GP, MPEG, and transport-stream formats up to 50MB each.',
   'Do not include contact numbers, watermarks, or unrelated graphics.',
   'The first asset should clearly show the product for review and marketplace display.',
 ];
@@ -17,12 +17,19 @@ function extensionOf(name: string) {
   return name.includes('.') ? name.split('.').pop()!.toLowerCase() : '';
 }
 
+export function inferProductMediaMime(name: string, currentType = '') {
+  if (currentType) return currentType;
+  return mimeFromExtension(extensionOf(name));
+}
+
 function isImageLike(file: File) {
-  return file.type.startsWith('image/') || IMAGE_EXTENSIONS.includes(extensionOf(file.name));
+  const type = inferProductMediaMime(file.name, file.type);
+  return type.startsWith('image/') || IMAGE_EXTENSIONS.includes(extensionOf(file.name));
 }
 
 function isVideoLike(file: File) {
-  return file.type.startsWith('video/') || VIDEO_EXTENSIONS.includes(extensionOf(file.name));
+  const type = inferProductMediaMime(file.name, file.type);
+  return type.startsWith('video/') || VIDEO_EXTENSIONS.includes(extensionOf(file.name));
 }
 
 function mimeFromExtension(ext: string) {
@@ -31,11 +38,25 @@ function mimeFromExtension(ext: string) {
     jpeg: 'image/jpeg',
     png: 'image/png',
     webp: 'image/webp',
+    gif: 'image/gif',
+    bmp: 'image/bmp',
+    svg: 'image/svg+xml',
+    avif: 'image/avif',
+    tif: 'image/tiff',
+    tiff: 'image/tiff',
     heic: 'image/heic',
     heif: 'image/heif',
     mp4: 'video/mp4',
     mov: 'video/quicktime',
     webm: 'video/webm',
+    m4v: 'video/x-m4v',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
+    '3gp': 'video/3gpp',
+    mpeg: 'video/mpeg',
+    mpg: 'video/mpeg',
+    m2ts: 'video/mp2t',
+    mts: 'video/mp2t',
   }[ext] || '';
 }
 
@@ -67,12 +88,13 @@ export async function normaliseProductFiles(files: File[]) {
 
   for (const file of files) {
     if (!isImageLike(file)) {
-      prepared.push(file.type ? file : new File([file], file.name, { type: mimeFromExtension(extensionOf(file.name)) || file.type }));
+      const safeType = inferProductMediaMime(file.name, file.type);
+      prepared.push(file.type ? file : new File([file], file.name, { type: safeType || file.type }));
       continue;
     }
 
     const ext = extensionOf(file.name);
-    const originalType = file.type || mimeFromExtension(ext) || 'image/jpeg';
+    const originalType = inferProductMediaMime(file.name, file.type) || 'image/jpeg';
     const needsNormalisation =
       file.size > IMAGE_LIMIT_BYTES ||
       ['heic', 'heif'].includes(ext) ||
@@ -120,8 +142,8 @@ export function validateProductFiles(files: File[]) {
     const isImage = isImageLike(file);
     const isVideo = isVideoLike(file);
     if (!isImage && !isVideo) return `${file.name} is not a supported image or video file.`;
-    if (isImage && file.size > IMAGE_LIMIT_BYTES) return `${file.name} exceeds the 5MB image limit. Try again and the image will be optimised automatically.`;
-    if (isVideo && file.size > VIDEO_LIMIT_BYTES) return `${file.name} exceeds the 20MB video limit.`;
+    if (isImage && file.size > IMAGE_LIMIT_BYTES) return `${file.name} exceeds the 15MB image limit. Try again and the image will be optimised automatically when possible.`;
+    if (isVideo && file.size > VIDEO_LIMIT_BYTES) return `${file.name} exceeds the 50MB video limit.`;
   }
 
   return null;
@@ -130,7 +152,7 @@ export function validateProductFiles(files: File[]) {
 export function toMediaPayload(items: { url: string; type: string; name: string; size: number }[]) {
   return items.map((item) => ({
     url: item.url,
-    type: item.type.startsWith('video/') ? 'video' : 'image',
+    type: inferProductMediaMime(item.name, item.type).startsWith('video/') ? 'video' : 'image',
     name: item.name,
     size: item.size,
   }));

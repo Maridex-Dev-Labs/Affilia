@@ -28,6 +28,13 @@ export default function Page() {
   const [processingFiles, setProcessingFiles] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
+  const resolveUserId = async () => {
+    if (user?.id) return user.id;
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id || null;
+  };
+
+
   const draftStorageKey = user ? `affilia:merchant-product-draft:${user.id}` : null;
 
   useEffect(() => {
@@ -62,10 +69,12 @@ export default function Page() {
 
   const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
-    if (chosen.length === 0 || !user) return;
+    if (chosen.length === 0) return;
     setProcessingFiles(true);
-    setUploadStatus(null);
+    setUploadStatus('Uploading product media...');
     try {
+      const uploaderId = await resolveUserId();
+      if (!uploaderId) throw new Error('Please sign in and try again.');
       const prepared = await normaliseProductFiles(chosen);
       const nextCount = uploadedMedia.length + prepared.length;
       const validationError = validateProductFiles(prepared) || (nextCount > 6 ? 'You can upload up to 6 media files per product.' : null);
@@ -75,7 +84,7 @@ export default function Page() {
       }
       const uploads = await Promise.all(
         prepared.map(async (file) => ({
-          url: await uploadProductMedia(user.id, file),
+          url: await uploadProductMedia(uploaderId, file),
           type: file.type,
           name: file.name,
           size: file.size,
@@ -93,7 +102,6 @@ export default function Page() {
   };
 
   const create = async () => {
-    if (!user) return;
     if (!title || !description || !price || !commission || !category) {
       setError('Fill in all required fields before submitting.');
       return;
@@ -102,25 +110,24 @@ export default function Page() {
       setError('You must confirm the product media guidelines before submitting.');
       return;
     }
-    const validationError = validateProductFiles(
-      uploadedMedia.map((item) => new File([''], item.name, { type: item.type }))
-    );
     if (uploadedMedia.length === 0) {
       setError('Add at least one product image or video.');
       return;
     }
-    if (validationError) {
-      setError(validationError);
+    if (uploadedMedia.length > 6) {
+      setError('You can upload up to 6 media files per product.');
       return;
     }
 
     setSaving(true);
     setError('');
     try {
+      const uploaderId = await resolveUserId();
+      if (!uploaderId) throw new Error('Please sign in and try again.');
       const media = toMediaPayload(uploadedMedia);
       const images = media.filter((item) => item.type === 'image').map((item) => item.url);
       const { error: insertError } = await supabase.from('products').insert({
-        merchant_id: user.id,
+        merchant_id: uploaderId,
         title,
         description,
         price_kes: Number(price),
@@ -165,13 +172,13 @@ export default function Page() {
             </select>
           </div>
           <label className="block rounded-3xl border border-dashed border-white/12 bg-black/20 p-6 text-center">
-            <input type="file" multiple accept="image/*,.heic,.heif,video/*" className="hidden" onChange={onFilesSelected} />
+            <input type="file" multiple accept="image/*,video/*,.heic,.heif,.avif,.gif,.bmp,.svg,.tif,.tiff,.mp4,.mov,.webm,.m4v,.avi,.mkv,.3gp,.mpeg,.mpg,.m2ts,.mts" className="hidden" onChange={onFilesSelected} />
             <div className="flex justify-center gap-3 text-[#9ca5b9]">
               <FileImage size={24} />
               <FileVideo size={24} />
             </div>
             <div className="mt-3 text-sm font-bold text-white">Upload product images or videos</div>
-            <div className="text-xs text-[#9ca5b9] mt-2">PNG, JPG, WEBP, HEIC, MP4, MOV, WEBM</div>
+            <div className="text-xs text-[#9ca5b9] mt-2">Supports common phone and desktop image/video formats, including HEIC, GIF, AVIF, MOV, MP4, MKV and more.</div>
           </label>
           {processingFiles ? <p className="text-sm text-[#9ca5b9]">Optimising mobile media for upload...</p> : null}
           {uploadStatus ? <p className="text-sm text-[#9ed4b2]">{uploadStatus}</p> : null}
@@ -190,7 +197,7 @@ export default function Page() {
             <span>I confirm these media assets meet the marketplace guidelines and are ready for system review.</span>
           </label>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
-          <Button loading={saving || processingFiles} loadingText={processingFiles ? 'Preparing media...' : 'Submitting for review...'} onClick={create} className="w-full justify-center" disabled={processingFiles}>
+          <Button loading={saving || processingFiles} loadingText={processingFiles ? 'Uploading media...' : 'Submitting for review...'} onClick={create} className="w-full justify-center" disabled={processingFiles}>
             Submit Product For Approval
           </Button>
         </div>

@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { inferProductMediaMime } from '@/lib/utils/product-media';
 
 export const buckets = {
   merchantDocs: 'merchant-docs',
@@ -12,9 +13,10 @@ export const buckets = {
 async function uploadToBucket(bucket: string, userId: string, file: File) {
   const safeName = file.name.replace(/\s+/g, '-').toLowerCase();
   const path = `${userId}/${Date.now()}-${safeName}`;
+  const contentType = inferProductMediaMime(file.name, file.type) || file.type || undefined;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     upsert: true,
-    contentType: file.type,
+    contentType,
   });
   if (error) throw error;
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
@@ -24,9 +26,10 @@ async function uploadToBucket(bucket: string, userId: string, file: File) {
 async function uploadPrivateToBucket(bucket: string, userId: string, file: File) {
   const safeName = file.name.replace(/\s+/g, '-').toLowerCase();
   const path = `${userId}/${Date.now()}-${safeName}`;
+  const contentType = inferProductMediaMime(file.name, file.type) || file.type || undefined;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     upsert: true,
-    contentType: file.type,
+    contentType,
   });
   if (error) throw error;
   return path;

@@ -24,6 +24,13 @@ export default function Page() {
   const [processingFiles, setProcessingFiles] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
+  const resolveUserId = async () => {
+    if (user?.id) return user.id;
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id || null;
+  };
+
+
   const draftStorageKey = user ? `affilia:merchant-product-edit:${params.id}:${user.id}` : null;
 
   useEffect(() => {
@@ -109,10 +116,12 @@ export default function Page() {
 
   const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
-    if (chosen.length === 0 || !user) return;
+    if (chosen.length === 0) return;
     setProcessingFiles(true);
-    setUploadStatus(null);
+    setUploadStatus('Uploading product media...');
     try {
+      const uploaderId = await resolveUserId();
+      if (!uploaderId) throw new Error('Please sign in and try again.');
       const prepared = await normaliseProductFiles(chosen);
       const existingCount = Array.isArray(product?.media) ? product.media.length : 0;
       const nextCount = existingCount + uploadedMedia.length + prepared.length;
@@ -123,7 +132,7 @@ export default function Page() {
       }
       const uploads = await Promise.all(
         prepared.map(async (file) => ({
-          url: await uploadProductMedia(user.id, file),
+          url: await uploadProductMedia(uploaderId, file),
           type: file.type,
           name: file.name,
           size: file.size,
@@ -141,10 +150,12 @@ export default function Page() {
   };
 
   const save = async () => {
-    if (!product || !user) return;
+    if (!product) return;
     setSaving(true);
     setError('');
     try {
+      const uploaderId = await resolveUserId();
+      if (!uploaderId) throw new Error('Please sign in and try again.');
       let media = Array.isArray(product.media) ? [...product.media] : [];
       if (uploadedMedia.length > 0) {
         media = [...media, ...toMediaPayload(uploadedMedia)].slice(0, 6);
@@ -237,9 +248,10 @@ export default function Page() {
             </select>
           </div>
           <label className="block rounded-3xl border border-dashed border-white/12 bg-black/20 p-6 text-center">
-            <input type="file" multiple accept="image/*,.heic,.heif,video/*" className="hidden" onChange={onFilesSelected} />
+            <input type="file" multiple accept="image/*,video/*,.heic,.heif,.avif,.gif,.bmp,.svg,.tif,.tiff,.mp4,.mov,.webm,.m4v,.avi,.mkv,.3gp,.mpeg,.mpg,.m2ts,.mts" className="hidden" onChange={onFilesSelected} />
             <div className="flex justify-center gap-3 text-[#9ca5b9]"><FileImage size={24} /><FileVideo size={24} /></div>
             <div className="mt-3 text-sm font-bold text-white">Add new media assets</div>
+            <div className="mt-2 text-xs text-[#9ca5b9]">Supports common phone and desktop image/video formats, including HEIC, GIF, AVIF, MOV, MP4, MKV and more.</div>
           </label>
           {uploadedMedia.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2">
@@ -254,7 +266,7 @@ export default function Page() {
           {uploadStatus ? <p className="text-sm text-[#9ed4b2]">{uploadStatus}</p> : null}
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <div className="flex flex-wrap gap-3">
-            <Button loading={saving} loadingText="Resubmitting..." onClick={save}>Save And Resubmit</Button>
+            <Button loading={saving || processingFiles} loadingText={processingFiles ? 'Uploading media...' : 'Resubmitting...'} onClick={save} disabled={processingFiles}>Save And Resubmit</Button>
             <SecondaryButton href="/merchant/products">Back to products</SecondaryButton>
           </div>
         </div>
