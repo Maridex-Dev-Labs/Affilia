@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import { sanitizeUserFacingError } from '@/lib/errors';
-import { PRODUCT_MEDIA_GUIDELINES, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
+import { PRODUCT_MEDIA_GUIDELINES, normaliseProductFiles, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
 import { uploadProductMedia } from '@/lib/supabase/storage';
 
 export default function Page() {
@@ -23,18 +23,29 @@ export default function Page() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [processingFiles, setProcessingFiles] = useState(false);
 
   const fileSummary = useMemo(() => files.map((file) => ({ name: file.name, type: file.type })), [files]);
 
-  const onFilesSelected = (event: ChangeEvent<HTMLInputElement>) => {
+  const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
-    const validationError = validateProductFiles(chosen);
-    if (validationError) {
-      setError(validationError);
-      return;
+    if (chosen.length === 0) return;
+    setProcessingFiles(true);
+    try {
+      const prepared = await normaliseProductFiles(chosen);
+      const validationError = validateProductFiles(prepared);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setFiles(prepared);
+      setError('');
+    } catch (err: any) {
+      setError(sanitizeUserFacingError(err, 'We could not prepare those media files for upload right now.'));
+    } finally {
+      setProcessingFiles(false);
+      event.target.value = '';
     }
-    setFiles(chosen);
-    setError('');
   };
 
   const create = async () => {
@@ -111,14 +122,15 @@ export default function Page() {
             </select>
           </div>
           <label className="block rounded-3xl border border-dashed border-white/12 bg-black/20 p-6 text-center">
-            <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={onFilesSelected} />
+            <input type="file" multiple accept="image/*,.heic,.heif,video/*" className="hidden" onChange={onFilesSelected} />
             <div className="flex justify-center gap-3 text-[#9ca5b9]">
               <FileImage size={24} />
               <FileVideo size={24} />
             </div>
             <div className="mt-3 text-sm font-bold text-white">Upload product images or videos</div>
-            <div className="text-xs text-[#9ca5b9] mt-2">PNG, JPG, WEBP, MP4, MOV, WEBM</div>
+            <div className="text-xs text-[#9ca5b9] mt-2">PNG, JPG, WEBP, HEIC, MP4, MOV, WEBM</div>
           </label>
+          {processingFiles ? <p className="text-sm text-[#9ca5b9]">Optimising mobile media for upload...</p> : null}
           {fileSummary.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2">
               {fileSummary.map((file) => (
@@ -134,7 +146,7 @@ export default function Page() {
             <span>I confirm these media assets meet the marketplace guidelines and are ready for system review.</span>
           </label>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
-          <Button loading={saving} loadingText="Submitting for review..." onClick={create} className="w-full justify-center">
+          <Button loading={saving || processingFiles} loadingText={processingFiles ? 'Preparing media...' : 'Submitting for review...'} onClick={create} className="w-full justify-center" disabled={processingFiles}>
             Submit Product For Approval
           </Button>
         </div>

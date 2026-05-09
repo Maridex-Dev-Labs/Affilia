@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import Button, { SecondaryButton } from '@/components/ui/Button';
 import { sanitizeUserFacingError } from '@/lib/errors';
 import { merchantApi } from '@/lib/api/merchant';
-import { PRODUCT_MEDIA_GUIDELINES, getPrimaryMediaUrl, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
+import { PRODUCT_MEDIA_GUIDELINES, getPrimaryMediaUrl, normaliseProductFiles, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
 import { uploadProductMedia } from '@/lib/supabase/storage';
 import { useAuth } from '@/lib/hooks/useAuth';
 
@@ -19,6 +19,7 @@ export default function Page() {
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [processingFiles, setProcessingFiles] = useState(false);
   const [saleForm, setSaleForm] = useState({
     affiliate_code: '',
     sale_amount_kes: '',
@@ -61,15 +62,25 @@ export default function Page() {
 
   const previewUrl = useMemo(() => getPrimaryMediaUrl(product), [product]);
 
-  const onFilesSelected = (event: ChangeEvent<HTMLInputElement>) => {
+  const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
-    const validationError = validateProductFiles(chosen);
-    if (validationError) {
-      setError(validationError);
-      return;
+    if (chosen.length === 0) return;
+    setProcessingFiles(true);
+    try {
+      const prepared = await normaliseProductFiles(chosen);
+      const validationError = validateProductFiles(prepared);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setNewFiles(prepared);
+      setError('');
+    } catch (err: any) {
+      setError(sanitizeUserFacingError(err, 'We could not prepare those media files for upload right now.'));
+    } finally {
+      setProcessingFiles(false);
+      event.target.value = '';
     }
-    setNewFiles(chosen);
-    setError('');
   };
 
   const save = async () => {
@@ -178,7 +189,7 @@ export default function Page() {
             </select>
           </div>
           <label className="block rounded-3xl border border-dashed border-white/12 bg-black/20 p-6 text-center">
-            <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={onFilesSelected} />
+            <input type="file" multiple accept="image/*,.heic,.heif,video/*" className="hidden" onChange={onFilesSelected} />
             <div className="flex justify-center gap-3 text-[#9ca5b9]"><FileImage size={24} /><FileVideo size={24} /></div>
             <div className="mt-3 text-sm font-bold text-white">Add new media assets</div>
           </label>
