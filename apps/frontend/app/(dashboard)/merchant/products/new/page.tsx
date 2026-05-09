@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileImage, FileVideo, ShieldCheck } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/client';
@@ -19,29 +19,39 @@ export default function Page() {
   const [commission, setCommission] = useState('10');
   const [category, setCategory] = useState('');
   const [stockStatus, setStockStatus] = useState('in_stock');
-  const [files, setFiles] = useState<File[]>([]);
+  const [uploadedMedia, setUploadedMedia] = useState<Array<{ url: string; type: string; name: string; size: number }>>([]);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [processingFiles, setProcessingFiles] = useState(false);
-
-  const fileSummary = useMemo(() => files.map((file) => ({ name: file.name, type: file.type })), [files]);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
-    if (chosen.length === 0) return;
+    if (chosen.length === 0 || !user) return;
     setProcessingFiles(true);
+    setUploadStatus(null);
     try {
       const prepared = await normaliseProductFiles(chosen);
-      const validationError = validateProductFiles(prepared);
+      const nextCount = uploadedMedia.length + prepared.length;
+      const validationError = validateProductFiles(prepared) || (nextCount > 6 ? 'You can upload up to 6 media files per product.' : null);
       if (validationError) {
         setError(validationError);
         return;
       }
-      setFiles(prepared);
+      const uploads = await Promise.all(
+        prepared.map(async (file) => ({
+          url: await uploadProductMedia(user.id, file),
+          type: file.type,
+          name: file.name,
+          size: file.size,
+        })),
+      );
+      setUploadedMedia((current) => [...current, ...uploads].slice(0, 6));
       setError('');
+      setUploadStatus(`${uploads.length} product media file${uploads.length === 1 ? '' : 's'} uploaded successfully.`);
     } catch (err: any) {
-      setError(sanitizeUserFacingError(err, 'We could not prepare those media files for upload right now.'));
+      setError(sanitizeUserFacingError(err, 'We could not upload those media files right now.'));
     } finally {
       setProcessingFiles(false);
       event.target.value = '';
@@ -58,7 +68,13 @@ export default function Page() {
       setError('You must confirm the product media guidelines before submitting.');
       return;
     }
-    const validationError = validateProductFiles(files);
+    const validationError = validateProductFiles(
+      uploadedMedia.map((item) => new File([''], item.name, { type: item.type }))
+    );
+    if (uploadedMedia.length === 0) {
+      setError('Add at least one product image or video.');
+      return;
+    }
     if (validationError) {
       setError(validationError);
       return;
@@ -67,15 +83,7 @@ export default function Page() {
     setSaving(true);
     setError('');
     try {
-      const uploads = await Promise.all(
-        files.map(async (file) => ({
-          url: await uploadProductMedia(user.id, file),
-          type: file.type,
-          name: file.name,
-          size: file.size,
-        })),
-      );
-      const media = toMediaPayload(uploads);
+      const media = toMediaPayload(uploadedMedia);
       const images = media.filter((item) => item.type === 'image').map((item) => item.url);
       const { error: insertError } = await supabase.from('products').insert({
         merchant_id: user.id,
@@ -131,12 +139,13 @@ export default function Page() {
             <div className="text-xs text-[#9ca5b9] mt-2">PNG, JPG, WEBP, HEIC, MP4, MOV, WEBM</div>
           </label>
           {processingFiles ? <p className="text-sm text-[#9ca5b9]">Optimising mobile media for upload...</p> : null}
-          {fileSummary.length > 0 ? (
+          {uploadStatus ? <p className="text-sm text-[#9ed4b2]">{uploadStatus}</p> : null}
+          {uploadedMedia.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2">
-              {fileSummary.map((file) => (
+              {uploadedMedia.map((file) => (
                 <div key={file.name} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white">
                   <div className="font-bold">{file.name}</div>
-                  <div className="text-xs text-[#8f98ab]">{file.type.startsWith('video/') ? 'Video asset' : 'Image asset'}</div>
+                  <div className="text-xs text-[#8f98ab]">{file.type.startsWith('video/') ? 'Video asset' : 'Image asset'} · Uploaded</div>
                 </div>
               ))}
             </div>

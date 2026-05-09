@@ -16,10 +16,11 @@ export default function Page() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const [product, setProduct] = useState<any>(null);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [uploadedMedia, setUploadedMedia] = useState<Array<{ url: string; type: string; name: string; size: number }>>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [processingFiles, setProcessingFiles] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [saleForm, setSaleForm] = useState({
     affiliate_code: '',
     sale_amount_kes: '',
@@ -64,19 +65,31 @@ export default function Page() {
 
   const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
-    if (chosen.length === 0) return;
+    if (chosen.length === 0 || !user) return;
     setProcessingFiles(true);
+    setUploadStatus(null);
     try {
       const prepared = await normaliseProductFiles(chosen);
-      const validationError = validateProductFiles(prepared);
+      const existingCount = Array.isArray(product?.media) ? product.media.length : 0;
+      const nextCount = existingCount + uploadedMedia.length + prepared.length;
+      const validationError = validateProductFiles(prepared) || (nextCount > 6 ? 'You can upload up to 6 media files per product.' : null);
       if (validationError) {
         setError(validationError);
         return;
       }
-      setNewFiles(prepared);
+      const uploads = await Promise.all(
+        prepared.map(async (file) => ({
+          url: await uploadProductMedia(user.id, file),
+          type: file.type,
+          name: file.name,
+          size: file.size,
+        })),
+      );
+      setUploadedMedia((current) => [...current, ...uploads].slice(0, Math.max(0, 6 - existingCount)));
       setError('');
+      setUploadStatus(`${uploads.length} product media file${uploads.length === 1 ? '' : 's'} uploaded successfully.`);
     } catch (err: any) {
-      setError(sanitizeUserFacingError(err, 'We could not prepare those media files for upload right now.'));
+      setError(sanitizeUserFacingError(err, 'We could not upload those media files right now.'));
     } finally {
       setProcessingFiles(false);
       event.target.value = '';
@@ -89,18 +102,8 @@ export default function Page() {
     setError('');
     try {
       let media = Array.isArray(product.media) ? [...product.media] : [];
-      if (newFiles.length > 0) {
-        const validationError = validateProductFiles(newFiles);
-        if (validationError) throw new Error(validationError);
-        const uploads = await Promise.all(
-          newFiles.map(async (file) => ({
-            url: await uploadProductMedia(user.id, file),
-            type: file.type,
-            name: file.name,
-            size: file.size,
-          })),
-        );
-        media = [...media, ...toMediaPayload(uploads)].slice(0, 6);
+      if (uploadedMedia.length > 0) {
+        media = [...media, ...toMediaPayload(uploadedMedia)].slice(0, 6);
       }
       const images = media.filter((item: any) => item.type === 'image').map((item: any) => item.url);
       const { error: updateError } = await supabase
@@ -193,6 +196,17 @@ export default function Page() {
             <div className="flex justify-center gap-3 text-[#9ca5b9]"><FileImage size={24} /><FileVideo size={24} /></div>
             <div className="mt-3 text-sm font-bold text-white">Add new media assets</div>
           </label>
+          {uploadedMedia.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {uploadedMedia.map((file) => (
+                <div key={file.url} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white">
+                  <div className="font-bold">{file.name}</div>
+                  <div className="text-xs text-[#8f98ab]">{file.type.startsWith('video/') ? 'Video asset' : 'Image asset'} · Uploaded</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {uploadStatus ? <p className="text-sm text-[#9ed4b2]">{uploadStatus}</p> : null}
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <div className="flex flex-wrap gap-3">
             <Button loading={saving} loadingText="Resubmitting..." onClick={save}>Save And Resubmit</Button>
