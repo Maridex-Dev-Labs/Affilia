@@ -11,16 +11,60 @@ import { PRODUCT_MEDIA_GUIDELINES, getPrimaryMediaUrl, normaliseProductFiles, to
 import { uploadProductMedia } from '@/lib/supabase/storage';
 import { useAuth } from '@/lib/hooks/useAuth';
 
+type UploadedMediaItem = { url: string; type: string; name: string; size: number };
+
 export default function Page() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const [product, setProduct] = useState<any>(null);
-  const [uploadedMedia, setUploadedMedia] = useState<Array<{ url: string; type: string; name: string; size: number }>>([]);
+  const [uploadedMedia, setUploadedMedia] = useState<UploadedMediaItem[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [processingFiles, setProcessingFiles] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+
+  const draftStorageKey = user ? `affilia:merchant-product-edit:${params.id}:${user.id}` : null;
+
+  useEffect(() => {
+    if (!product || !draftStorageKey || typeof window === 'undefined') return;
+    const raw = window.sessionStorage.getItem(draftStorageKey);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as Record<string, any>;
+      setProduct((current: any) => ({
+        ...current,
+        title: typeof draft.title === 'string' ? draft.title : current?.title,
+        description: typeof draft.description === 'string' ? draft.description : current?.description,
+        price_kes: typeof draft.price_kes === 'string' || typeof draft.price_kes === 'number' ? draft.price_kes : current?.price_kes,
+        commission_percent: typeof draft.commission_percent === 'string' || typeof draft.commission_percent === 'number' ? draft.commission_percent : current?.commission_percent,
+        category: typeof draft.category === 'string' ? draft.category : current?.category,
+        stock_status: typeof draft.stock_status === 'string' ? draft.stock_status : current?.stock_status,
+      }));
+      setUploadedMedia(Array.isArray(draft.uploadedMedia) ? draft.uploadedMedia : []);
+      if (Array.isArray(draft.uploadedMedia) && draft.uploadedMedia.length > 0) {
+        setUploadStatus(`${draft.uploadedMedia.length} product media file${draft.uploadedMedia.length === 1 ? '' : 's'} restored.`);
+      }
+    } catch {
+      window.sessionStorage.removeItem(draftStorageKey);
+    }
+  }, [product?.id, draftStorageKey]);
+
+  useEffect(() => {
+    if (!product || !draftStorageKey || typeof window === 'undefined') return;
+    window.sessionStorage.setItem(
+      draftStorageKey,
+      JSON.stringify({
+        title: product.title,
+        description: product.description,
+        price_kes: product.price_kes,
+        commission_percent: product.commission_percent,
+        category: product.category,
+        stock_status: product.stock_status,
+        uploadedMedia,
+      }),
+    );
+  }, [draftStorageKey, product, uploadedMedia]);
   const [saleForm, setSaleForm] = useState({
     affiliate_code: '',
     sale_amount_kes: '',
@@ -127,6 +171,7 @@ export default function Page() {
         })
         .eq('id', params.id);
       if (updateError) throw updateError;
+      if (draftStorageKey && typeof window !== 'undefined') window.sessionStorage.removeItem(draftStorageKey);
       router.push('/merchant/products');
     } catch (err: any) {
       setError(sanitizeUserFacingError(err, 'We could not update the product right now.'));

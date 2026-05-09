@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileImage, FileVideo, ShieldCheck } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase/client';
@@ -9,6 +9,8 @@ import Button from '@/components/ui/Button';
 import { sanitizeUserFacingError } from '@/lib/errors';
 import { PRODUCT_MEDIA_GUIDELINES, normaliseProductFiles, toMediaPayload, validateProductFiles } from '@/lib/utils/product-media';
 import { uploadProductMedia } from '@/lib/supabase/storage';
+
+type UploadedMediaItem = { url: string; type: string; name: string; size: number };
 
 export default function Page() {
   const { user } = useAuth();
@@ -19,12 +21,44 @@ export default function Page() {
   const [commission, setCommission] = useState('10');
   const [category, setCategory] = useState('');
   const [stockStatus, setStockStatus] = useState('in_stock');
-  const [uploadedMedia, setUploadedMedia] = useState<Array<{ url: string; type: string; name: string; size: number }>>([]);
+  const [uploadedMedia, setUploadedMedia] = useState<UploadedMediaItem[]>([]);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [processingFiles, setProcessingFiles] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+
+  const draftStorageKey = user ? `affilia:merchant-product-draft:${user.id}` : null;
+
+  useEffect(() => {
+    if (!draftStorageKey || typeof window === 'undefined') return;
+    const raw = window.sessionStorage.getItem(draftStorageKey);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as Record<string, any>;
+      setTitle(typeof draft.title === 'string' ? draft.title : '');
+      setDescription(typeof draft.description === 'string' ? draft.description : '');
+      setPrice(typeof draft.price === 'string' ? draft.price : '');
+      setCommission(typeof draft.commission === 'string' ? draft.commission : '10');
+      setCategory(typeof draft.category === 'string' ? draft.category : '');
+      setStockStatus(typeof draft.stockStatus === 'string' ? draft.stockStatus : 'in_stock');
+      setAgreed(Boolean(draft.agreed));
+      setUploadedMedia(Array.isArray(draft.uploadedMedia) ? draft.uploadedMedia : []);
+      if (Array.isArray(draft.uploadedMedia) && draft.uploadedMedia.length > 0) {
+        setUploadStatus(`${draft.uploadedMedia.length} product media file${draft.uploadedMedia.length === 1 ? '' : 's'} restored.`);
+      }
+    } catch {
+      window.sessionStorage.removeItem(draftStorageKey);
+    }
+  }, [draftStorageKey]);
+
+  useEffect(() => {
+    if (!draftStorageKey || typeof window === 'undefined') return;
+    window.sessionStorage.setItem(
+      draftStorageKey,
+      JSON.stringify({ title, description, price, commission, category, stockStatus, agreed, uploadedMedia }),
+    );
+  }, [draftStorageKey, title, description, price, commission, category, stockStatus, agreed, uploadedMedia]);
 
   const onFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || []);
@@ -100,6 +134,7 @@ export default function Page() {
         submitted_at: new Date().toISOString(),
       });
       if (insertError) throw insertError;
+      if (draftStorageKey && typeof window !== 'undefined') window.sessionStorage.removeItem(draftStorageKey);
       router.push('/merchant/products');
     } catch (err: any) {
       setError(sanitizeUserFacingError(err, 'We could not submit the product for review right now.'));
